@@ -1,0 +1,1731 @@
+<meta charset="utf-8">
+<title>The Stellar Graveyard</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="A beginner's interactive tour of every black-hole and neutron-star merger heard by LIGO, Virgo and KAGRA, built from the GWTC catalog.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Bricolage+Grotesque:opsz,wght@12..96,500..800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+/* Layout: one reading column (~68ch) for the story, with wider "instrument panels" (up to 1120px) for the
+   interactive pieces; a slim sticky chapter bar on top. The merger simulator is drawn as a dark
+   oscilloscope screen in both themes; everything else follows the viewer's theme. */
+:root {
+  --bg: #f2f4f7;  --surface: #fbfcfd;  --ink: #0e1520;  --ink-2: #465063;  --muted: #6b7686;
+  --grid: #e3e7ed; --rule: #c9d0da;  --shade: #e8ecf2;  --accent: #1d5fd1; --accent-ink: #ffffff;
+  --good: #0b7a3b; --bad: #b42727;
+  --s1: #2a78d6;  --s2: #eb6834;  --s3: #1baf7a;                      /* pair types (validated set) */
+  --seq-0: #86b6ef; --seq-1: #3987e5; --seq-2: #1c5cab; --seq-3: #0d366b;   /* distance: near -> far */
+  --div-n2: #104281; --div-n1: #3987e5; --div-0: #b9bec6; --div-p1: #e34948; --div-p2: #9e2a2a; /* spin */
+  --errbar: #8f99a8;
+  --tip-bg: #0e1520; --tip-fg: #f2f4f7; --tip-muted: #a9b2c0;
+  /* The oscilloscope screen keeps one look in both themes, on purpose */
+  --scope-bg: #0a111c; --scope-grid: #16263a; --scope-ink: #b9c9dd; --scope-dim: #6d819b;
+  --scope-trace: #6fc3ff; --scope-ring: #9cc6ff; --scope-ns: #ffb54d;
+  --font-display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  --font-body: "Atkinson Hyperlegible", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+  --step--1: 0.875rem; --step-0: 1.0625rem; --step-1: 1.25rem; --step-2: 1.65rem; --step-3: clamp(1.9rem, 4vw, 2.5rem);
+  --step-4: clamp(2.7rem, 7vw, 4.6rem);
+  --radius: 12px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0b0f15; --surface: #111722; --ink: #e9edf3; --ink-2: #b3bccb; --muted: #8a95a6;
+    --grid: #1e2632; --rule: #334054; --shade: #1a2230; --accent: #7aa7ff; --accent-ink: #0b0f15;
+    --good: #4cc47c; --bad: #ff8080;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+    --seq-0: #184f95; --seq-1: #2a78d6; --seq-2: #5598e7; --seq-3: #9ec5f4;
+    --div-n2: #8fbcf2; --div-n1: #2f6fc4; --div-0: #4d5566; --div-p1: #c24343; --div-p2: #f08a8a;
+    --errbar: #6b7789;
+    --tip-bg: #e9edf3; --tip-fg: #0b0f15; --tip-muted: #4b5566;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0b0f15; --surface: #111722; --ink: #e9edf3; --ink-2: #b3bccb; --muted: #8a95a6;
+  --grid: #1e2632; --rule: #334054; --shade: #1a2230; --accent: #7aa7ff; --accent-ink: #0b0f15;
+  --good: #4cc47c; --bad: #ff8080;
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+  --seq-0: #184f95; --seq-1: #2a78d6; --seq-2: #5598e7; --seq-3: #9ec5f4;
+  --div-n2: #8fbcf2; --div-n1: #2f6fc4; --div-0: #4d5566; --div-p1: #c24343; --div-p2: #f08a8a;
+  --errbar: #6b7789;
+  --tip-bg: #e9edf3; --tip-fg: #0b0f15; --tip-muted: #4b5566;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+.median-label, .ann, .region-label, .band-label { paint-order: stroke; stroke: var(--surface); stroke-width: 3px; stroke-linejoin: round; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--font-body); font-size: var(--step-0); line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--bg); }
+h1, h2, h3 { font-family: var(--font-display); line-height: 1.1; text-wrap: balance; margin: 0; letter-spacing: -0.01em; }
+h2 { font-size: var(--step-3); font-weight: 700; }
+h3 { font-size: var(--step-1); font-weight: 700; }
+p { margin: 0; }
+a { color: var(--accent); text-underline-offset: 3px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.mono { font-family: var(--font-mono); }
+.num { font-variant-numeric: tabular-nums; }
+
+/* ---------- sticky chapter bar ---------- */
+.topbar { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 20; background: var(--bg); border-bottom: 1px solid var(--rule); }
+.topbar-inner {
+  max-width: 1152px; margin: 0 auto; display: flex; align-items: center; gap: 16px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 8px;
+}
+.brand { font-family: var(--font-display); font-weight: 800; font-size: 1rem; white-space: nowrap; color: var(--ink); text-decoration: none; }
+.chapters { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; min-width: 0; }
+.chapters::-webkit-scrollbar { display: none; }
+.chapters a {
+  white-space: nowrap; text-decoration: none; color: var(--ink-2); font-size: var(--step--1);
+  padding: 4px 10px; border-radius: 999px;
+}
+.chapters a:hover { background: var(--shade); color: var(--ink); }
+.chapters a[aria-current="true"] { background: var(--ink); color: var(--bg); }
+
+main, .foot {
+  max-width: 1152px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+main { display: grid; gap: 88px; padding-block: 40px 72px; }
+section { scroll-margin-top: 72px; display: grid; gap: 22px; min-width: 0; }
+.prose { max-width: 68ch; display: grid; gap: 14px; }
+.eyebrow { font-family: var(--font-mono); font-size: 0.78rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.lede { font-size: var(--step-1); line-height: 1.5; color: var(--ink-2); }
+
+/* glossary words */
+.term {
+  text-decoration: underline dotted; text-decoration-color: var(--accent); text-decoration-thickness: 2px;
+  text-underline-offset: 4px; cursor: help; border-radius: 3px;
+}
+.term:hover { background: var(--shade); }
+
+/* ---------- hero ---------- */
+.hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 40px; align-items: center; }
+.hero h1 { font-size: var(--step-4); font-weight: 800; letter-spacing: -0.025em; }
+.hero-text { display: grid; gap: 20px; min-width: 0; }
+.facts { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 0; list-style: none; }
+.facts li { font-family: var(--font-mono); font-size: 0.82rem; padding: 4px 10px; border: 1px solid var(--rule); border-radius: 999px; color: var(--ink-2); }
+.facts b { color: var(--ink); font-weight: 600; }
+.cta { display: flex; flex-wrap: wrap; gap: 10px; }
+.btn {
+  font: inherit; font-size: var(--step--1); font-weight: 700; cursor: pointer; text-decoration: none;
+  padding: 10px 16px; border-radius: 999px; border: 1px solid var(--ink); background: var(--ink); color: var(--bg);
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.btn.ghost { background: transparent; color: var(--ink); border-color: var(--rule); }
+.btn:hover { filter: brightness(1.12); }
+.btn.ghost:hover { background: var(--shade); filter: none; }
+.hint { font-size: var(--step--1); color: var(--muted); }
+.hint .term { color: var(--ink-2); }
+
+.scope { background: var(--scope-bg); border-radius: var(--radius); overflow: hidden; position: relative; }
+.scope canvas { display: block; width: 100%; height: auto; }
+figure { margin: 0; display: grid; gap: 10px; min-width: 0; }
+figcaption { font-size: var(--step--1); color: var(--muted); max-width: 68ch; }
+
+/* ---------- panels and controls ---------- */
+.panel { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--radius); padding: 20px; display: grid; gap: 16px; min-width: 0; }
+.controls { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; }
+.control { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: var(--step--1); color: var(--ink-2); }
+.seg { display: inline-flex; border: 1px solid var(--rule); border-radius: 18px; padding: 2px; background: var(--bg); flex-wrap: wrap; }
+.seg button {
+  font: inherit; font-size: var(--step--1); border: 0; background: transparent; color: var(--ink-2);
+  padding: 5px 12px; border-radius: 999px; cursor: pointer;
+}
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); font-weight: 700; }
+.seg button:not([aria-pressed="true"]):hover { background: var(--shade); color: var(--ink); }
+input[type="range"] { accent-color: var(--accent); width: 240px; max-width: 100%; }
+input[type="search"], input[type="text"] {
+  font: inherit; font-size: var(--step--1); padding: 6px 12px; border-radius: 999px;
+  border: 1px solid var(--rule); background: var(--bg); color: var(--ink); width: 220px; max-width: 100%;
+}
+.chart { width: 100%; min-width: 0; position: relative; }
+.chart svg { display: block; overflow: visible; touch-action: pan-y; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; font-size: var(--step--1); color: var(--ink-2); min-height: 26px; }
+.legend .sw { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: -1px; }
+.legend .ramp { display: inline-block; width: 160px; height: 10px; border-radius: 5px; vertical-align: -1px; margin: 0 8px; }
+.note { font-size: var(--step--1); color: var(--muted); }
+.callout { border-left: 3px solid var(--accent); padding: 4px 0 4px 14px; color: var(--ink-2); }
+.notice-list { margin: 0; padding-left: 1.2em; display: grid; gap: 8px; }
+
+/* SVG chart parts (colors come from the theme tokens) */
+.ax path, .ax line { stroke: var(--rule); }
+.ax text { fill: var(--ink-2); font-family: var(--font-body); font-size: 12px; }
+.ax-title { fill: var(--ink-2); font-size: 12.5px; }
+.gridline { stroke: var(--grid); stroke-width: 1; }
+.band { fill: var(--shade); }
+.band-label { fill: var(--ink-2); font-size: 11.5px; }
+.region-label { fill: var(--muted); font-size: 12px; }
+.guide { stroke: var(--rule); stroke-width: 1.2; fill: none; }
+.divider { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 4 4; }
+.dot { stroke: var(--surface); stroke-width: 1.5; }
+.dot.sel { stroke: var(--ink); stroke-width: 2.5; }
+.err { stroke: var(--errbar); stroke-width: 1.5; }
+.err-cap { stroke: var(--errbar); stroke-width: 1.5; }
+.ann { fill: var(--ink-2); font-size: 11.5px; }
+.ann-line { stroke: var(--muted); stroke-width: 0.8; }
+.end-label { fill: var(--ink-2); font-size: 12px; font-variant-numeric: tabular-nums; }
+.crosshair { stroke: var(--ink-2); stroke-width: 1; }
+.bar { fill: var(--s1); }
+.bar.hot { fill: var(--ink); }
+.median-seg { stroke: var(--ink); stroke-width: 2; }
+.median-label { fill: var(--ink); font-size: 11.5px; font-weight: 700; }
+.row-label { fill: var(--ink-2); font-family: var(--font-mono); font-size: 10.5px; }
+.row-range { stroke: var(--ink-2); stroke-width: 2; stroke-linecap: round; }
+.row.out .row-range { stroke: var(--rule); }
+.row.out .row-label { fill: var(--muted); }
+.row.hot .row-label { fill: var(--ink); font-weight: 600; }
+.edge-line { stroke: var(--ink); stroke-width: 1.5; }
+
+/* ---------- simulator ---------- */
+.sim { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 20px; }
+.sim-side { display: grid; gap: 14px; align-content: start; min-width: 0; }
+.mass-row { display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; align-items: center; }
+.mass-row label { font-weight: 700; font-size: var(--step--1); }
+.mass-row output { font-family: var(--font-mono); font-size: 0.95rem; text-align: right; }
+.mass-row input { grid-column: 1 / -1; width: 100%; }
+.mass-row .kind { grid-column: 1 / -1; font-size: 0.8rem; color: var(--muted); }
+.presets { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: var(--step--1); color: var(--ink-2); }
+.chip {
+  font: inherit; font-family: var(--font-mono); font-size: 0.78rem; cursor: pointer;
+  padding: 4px 10px; border-radius: 999px; border: 1px solid var(--rule); background: var(--bg); color: var(--ink);
+}
+.chip:hover { border-color: var(--ink-2); }
+.readouts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 0; }
+.readouts div { border-top: 1px solid var(--rule); padding-top: 8px; min-width: 0; }
+.readouts dt { font-size: 0.78rem; color: var(--muted); }
+.readouts dd { margin: 2px 0 0; font-family: var(--font-mono); font-size: 0.98rem; font-weight: 500; overflow-wrap: anywhere; }
+.readouts dd small { display: block; font-family: var(--font-body); font-size: 0.78rem; color: var(--ink-2); font-weight: 400; }
+.play-row { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; font-size: var(--step--1); color: var(--ink-2); }
+.play-row label { display: inline-flex; gap: 6px; align-items: center; cursor: pointer; }
+.status { font-size: var(--step--1); color: var(--muted); min-height: 1.4em; }
+
+/* ---------- graveyard ---------- */
+.gy { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 20px; align-items: start; }
+.card { border: 1px solid var(--rule); border-radius: var(--radius); padding: 16px; display: grid; gap: 10px; background: var(--bg); min-width: 0; }
+.card h3 { font-family: var(--font-mono); font-weight: 600; font-size: 1.15rem; letter-spacing: 0; overflow-wrap: anywhere; }
+.card p { font-size: 0.95rem; }
+.badges { display: flex; flex-wrap: wrap; gap: 6px; }
+.badge { font-size: 0.75rem; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--rule); color: var(--ink-2); }
+.badge .sw { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; }
+.card dl { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; margin: 0; font-size: 0.85rem; }
+.card dt { color: var(--muted); }
+.card dd { margin: 0; font-family: var(--font-mono); font-size: 0.82rem; }
+.card details summary { cursor: pointer; font-size: 0.85rem; color: var(--accent); }
+.card .fame { font-size: 0.9rem; border-left: 3px solid var(--accent); padding-left: 10px; color: var(--ink-2); }
+.r { color: var(--muted); }
+.time-row { display: flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; font-size: var(--step--1); color: var(--ink-2); }
+.time-row input { flex: 1 1 200px; width: auto; max-width: 420px; }
+
+/* ---------- runs table, data table ---------- */
+.table-wrap { overflow-x: auto; min-width: 0; }
+table { border-collapse: collapse; width: 100%; font-size: 0.88rem; }
+th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+th { color: var(--ink-2); font-weight: 700; font-size: 0.8rem; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+.rate { display: inline-block; height: 8px; border-radius: 0 4px 4px 0; background: var(--s1); vertical-align: 0; margin-right: 8px; }
+.data-scroll { max-height: 480px; overflow: auto; border: 1px solid var(--rule); border-radius: 8px; }
+.data-scroll thead th { position: sticky; top: 0; background: var(--surface); z-index: 1; }
+.data-scroll th button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; font-weight: 700; }
+.data-scroll tbody tr { cursor: pointer; }
+.data-scroll tbody tr:hover { background: var(--shade); }
+.data-scroll td:first-child { font-family: var(--font-mono); font-size: 0.82rem; }
+
+/* ---------- quiz ---------- */
+.quiz { display: grid; gap: 18px; max-width: 760px; }
+.q { border: 1px solid var(--rule); border-radius: var(--radius); padding: 16px; display: grid; gap: 10px; background: var(--surface); }
+.q h3 { font-family: var(--font-body); font-size: 1.02rem; }
+.q .opts { display: grid; gap: 6px; }
+.q .opts button {
+  font: inherit; font-size: 0.95rem; text-align: left; cursor: pointer; padding: 8px 12px; border-radius: 8px;
+  border: 1px solid var(--rule); background: var(--bg); color: var(--ink);
+}
+.q .opts button:hover:not(:disabled) { border-color: var(--ink-2); }
+.q .opts button:disabled { cursor: default; }
+.q .opts button.right { border-color: var(--good); box-shadow: inset 3px 0 0 var(--good); }
+.q .opts button.wrong { border-color: var(--bad); box-shadow: inset 3px 0 0 var(--bad); }
+.q .why { font-size: 0.92rem; color: var(--ink-2); }
+.q .verdict { font-weight: 700; }
+.q .verdict.right { color: var(--good); }
+.q .verdict.wrong { color: var(--bad); }
+.score { font-family: var(--font-display); font-size: var(--step-1); font-weight: 700; }
+
+/* ---------- glossary, sources ---------- */
+.gloss { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 300px), 1fr)); gap: 14px 28px; margin: 0; }
+.gloss div { border-top: 1px solid var(--rule); padding-top: 10px; }
+.gloss dt { font-weight: 700; }
+.gloss dd { margin: 4px 0 0; color: var(--ink-2); font-size: 0.95rem; }
+.foot { padding-block: 32px 48px; border-top: 1px solid var(--rule); display: grid; gap: 12px; font-size: 0.9rem; color: var(--ink-2); }
+.foot h2 { font-size: var(--step-1); }
+.foot ul { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; }
+.foot blockquote { margin: 0; padding-left: 14px; border-left: 2px solid var(--rule); font-size: 0.85rem; color: var(--muted); }
+
+/* ---------- tooltip ---------- */
+#tip {
+  position: fixed; z-index: 50; left: 0; top: 0; pointer-events: none;
+  max-width: min(330px, calc(100vw - 24px)); padding: 10px 12px; border-radius: 10px;
+  background: var(--tip-bg); color: var(--tip-fg); font-size: 0.86rem; line-height: 1.45;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
+}
+#tip b { display: block; font-family: var(--font-display); font-size: 0.98rem; margin-bottom: 2px; }
+#tip .t-name { font-family: var(--font-mono); font-weight: 600; font-size: 0.92rem; }
+#tip .t-sub, #tip .t-hint, #tip .r { color: var(--tip-muted); }
+#tip .t-sub { font-size: 0.8rem; margin-bottom: 6px; }
+#tip .t-hint { font-size: 0.76rem; margin-top: 6px; }
+#tip dl { display: grid; grid-template-columns: auto auto; gap: 1px 10px; margin: 0; }
+#tip dt { color: var(--tip-muted); }
+#tip dd { margin: 0; font-family: var(--font-mono); font-size: 0.8rem; }
+
+.load-error { padding: 16px; border: 1px solid var(--bad); border-radius: 8px; color: var(--bad); }
+
+@media (max-width: 900px) {
+  .hero, .sim, .gy { grid-template-columns: minmax(0, 1fr); }
+  main { gap: 64px; padding-block: 28px 56px; }
+}
+@media (max-width: 520px) {
+  .panel { padding: 14px; }
+  .readouts { grid-template-columns: minmax(0, 1fr); }
+  .brand { display: none; }
+}
+</style>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="#start">Stellar Graveyard</a>
+    <nav class="chapters" aria-label="Chapters">
+      <a href="#waves">1 · Waves</a>
+      <a href="#graveyard">2 · The graveyard</a>
+      <a href="#masses">3 · Common masses</a>
+      <a href="#timeline">4 · Ten years</a>
+      <a href="#distance">5 · How far</a>
+      <a href="#gap">6 · Forbidden zone</a>
+      <a href="#quiz">7 · Quiz</a>
+      <a href="#data">Data</a>
+      <a href="#glossary">Glossary</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <div id="load-error" class="load-error" hidden></div>
+
+  <!-- ================= HERO ================= -->
+  <section id="start" class="hero" aria-labelledby="title">
+    <div class="hero-text">
+      <span class="eyebrow">CS85 · Project 18 · An interactive field guide</span>
+      <h1 id="title">The Stellar Graveyard</h1>
+      <p class="lede">Since 2015, gravitational-wave detectors have heard <b>391</b> collisions between
+        <span class="term" data-term="bh">black holes</span> and <span class="term" data-term="ns">neutron stars</span>,
+        the dead remains of giant stars. This page walks you through what they found, one idea at a time,
+        using the real catalog.</p>
+      <ul class="facts" aria-label="The catalog at a glance">
+        <li><b>391</b> detections</li>
+        <li><b>282</b> with measured masses</li>
+        <li><b>2015–2025</b></li>
+        <li><b>6</b> <span class="term" data-term="run">observing runs</span></li>
+      </ul>
+      <div class="cta">
+        <a class="btn" href="#waves">Start the tour ↓</a>
+        <a class="btn ghost" href="#graveyard">Jump to the graveyard</a>
+      </div>
+      <p class="hint">Words with a dotted underline explain themselves. Hover over them, tap them, or move to them with the Tab key.</p>
+    </div>
+    <figure>
+      <div class="scope"><canvas id="hero-canvas" width="640" height="460" role="img" aria-label="Animation: two black holes spiral together and merge while a wave trace scrolls below"></canvas></div>
+      <figcaption>Illustration, not real data: two black holes with the masses of the first detection, GW150914
+        (35 and 30 times the Sun), spiralling together, hugely slowed down. The trace underneath is the wave they send out.
+        It wiggles twice for every orbit.</figcaption>
+    </figure>
+  </section>
+
+  <!-- ================= 1. WAVES ================= -->
+  <section id="waves" aria-labelledby="h-waves">
+    <div class="prose">
+      <span class="eyebrow">Chapter 1</span>
+      <h2 id="h-waves">What is a gravitational wave?</h2>
+      <p>Anything with mass bends space-time, the fabric of space and time. When two very heavy objects whirl around
+        each other, they stir it up and send out ripples called <span class="term" data-term="gw">gravitational waves</span>.
+        The ripples carry energy away, so the pair slowly spirals closer, orbits faster, and finally collides.</p>
+      <p>By the time the ripples reach Earth they are unbelievably small. The <span class="term" data-term="ligo">LIGO</span>
+        detectors notice their 4-kilometre arms changing length by less than a thousandth of the width of a proton.</p>
+      <p>As the objects get closer, the waves rise in pitch and get louder, so if you turn them into sound you hear a
+        <span class="term" data-term="chirp">chirp</span>. Build your own merger below. Pick two masses and compare a light pair with a heavy one.</p>
+    </div>
+
+    <div class="panel" aria-labelledby="h-sim">
+      <h3 id="h-sim">Merger simulator</h3>
+      <div class="sim">
+        <div class="sim-side">
+          <div class="scope"><canvas id="sim-canvas" width="560" height="400" role="img" aria-label="Animation of the two objects you picked spiralling together"></canvas></div>
+          <div class="presets"><span>Try a real one:</span><span id="presets" style="display:contents"></span></div>
+        </div>
+        <div class="sim-side">
+          <div class="mass-row">
+            <label for="mass-a">Object A</label><output id="mass-a-out" for="mass-a"></output>
+            <input id="mass-a" type="range" min="0" max="1000" step="1" aria-describedby="mass-a-kind">
+            <span class="kind" id="mass-a-kind"></span>
+          </div>
+          <div class="mass-row">
+            <label for="mass-b">Object B</label><output id="mass-b-out" for="mass-b"></output>
+            <input id="mass-b" type="range" min="0" max="1000" step="1" aria-describedby="mass-b-kind">
+            <span class="kind" id="mass-b-kind"></span>
+          </div>
+          <dl class="readouts" id="readouts" aria-live="polite"></dl>
+        </div>
+      </div>
+      <figure>
+        <div class="scope"><canvas id="wave-canvas" width="1000" height="200" data-minh="150" role="img" aria-label="The chirp signal for the masses you picked"></canvas></div>
+        <figcaption id="wave-caption">The wave LIGO would record, from when it becomes loud enough to hear (about 20 vibrations per second) up to the moment of merger.</figcaption>
+      </figure>
+      <div class="play-row">
+        <button class="btn" id="play" type="button">▶ Play the chirp</button>
+        <label for="raise"><input id="raise" type="checkbox" checked> Raise the pitch 4× (helps on laptop speakers)</label>
+        <span class="status" id="play-status" aria-live="polite"></span>
+      </div>
+      <p class="note">This simulator uses the simplest version of the chirp formula: Newton's gravity plus the energy the waves carry away.
+        It gets the timing and pitch roughly right, but it is an illustration, not real data, and it stops at the moment of merger.
+        The final mass uses a rule of thumb taken from the real catalog: the leftover black hole is usually about 96% of the two masses added together.</p>
+    </div>
+
+    <div class="prose">
+      <h3>How do astronomers get masses from a sound?</h3>
+      <p>The shape of the chirp gives them away. How quickly the pitch rises tells you the
+        <span class="term" data-term="chirpmass">chirp mass</span>, and the pitch at the moment of merger tells you the total mass.
+        Heavy pairs merge at a low pitch, after only a few wiggles. Light pairs, like two neutron stars, hum for minutes and climb to a high squeal.
+        Comparing how loud the signal is with how loud it would be up close tells you the distance.</p>
+      <p>Every number in the catalog is a best guess (the <span class="term" data-term="median">median</span>) plus a
+        <span class="term" data-term="range90">90% range</span>, because noise blurs the signal.</p>
+    </div>
+  </section>
+
+  <!-- ================= 2. GRAVEYARD ================= -->
+  <section id="graveyard" aria-labelledby="h-gy">
+    <div class="prose">
+      <span class="eyebrow">Chapter 2</span>
+      <h2 id="h-gy">Meet the graveyard</h2>
+      <p>Each dot is one merger with measured masses. Across is the heavier object
+        (the <span class="term" data-term="primary">primary mass</span>), and up is the lighter one. The heavier one always goes across,
+        so no dot can sit above the diagonal line. The dashed lines at 3 <span class="term" data-term="msun">M☉</span>
+        separate neutron stars (below) from black holes (above).</p>
+      <p>Hover over or tap a dot to see its numbers, and click it to read its story. Use the slider to replay ten years of discoveries.</p>
+    </div>
+    <div class="panel">
+      <div class="controls">
+        <div class="control"><span id="color-by-label">Color the dots by</span>
+          <div class="seg" role="group" aria-labelledby="color-by-label" id="color-by">
+            <button type="button" data-v="type" aria-pressed="true">Type of pair</button>
+            <button type="button" data-v="distance" aria-pressed="false">Distance</button>
+            <button type="button" data-v="spin" aria-pressed="false">Spin</button>
+          </div>
+        </div>
+        <div class="control">
+          <label for="find">Find an event</label>
+          <input id="find" type="search" list="event-names" placeholder="e.g. GW190521" autocomplete="off">
+          <datalist id="event-names"></datalist>
+        </div>
+      </div>
+      <div class="time-row">
+        <button class="btn ghost" id="time-play" type="button" aria-label="Replay the discoveries">▶ Replay</button>
+        <label for="time">Detected by</label>
+        <input id="time" type="range" min="0" max="1000" step="1" value="1000">
+        <span id="time-out" class="num" aria-live="polite"></span>
+      </div>
+      <div class="legend" id="gy-legend"></div>
+      <div class="gy">
+        <div class="chart" id="gy-chart"></div>
+        <aside class="card" id="event-card" aria-live="polite"></aside>
+      </div>
+      <p class="note">Gray crosshairs on the highlighted dot show its 90% range. Very few dots sit in the bottom-left corner:
+        neutron-star collisions are quiet, so we only hear the nearby ones.</p>
+    </div>
+  </section>
+
+  <!-- ================= 3. MASSES ================= -->
+  <section id="masses" aria-labelledby="h-masses">
+    <div class="prose">
+      <span class="eyebrow">Chapter 3</span>
+      <h2 id="h-masses">Which masses are common, and which are missing?</h2>
+      <p>Sorting the masses into bins shows which ones nature makes most often, and which it seems to avoid.
+        The bins get wider as the masses grow (a logarithmic scale), so 1-Sun neutron stars and 100-Sun black holes fit on one chart.
+        The gray bands mark two ranges where astronomers expected to find almost nothing: the
+        <span class="term" data-term="lowergap">lower mass gap</span> and the
+        <span class="term" data-term="pisn">pair-instability gap</span>.</p>
+    </div>
+    <div class="panel">
+      <div class="controls">
+        <div class="control"><span id="hist-label">Show</span>
+          <div class="seg" role="group" aria-labelledby="hist-label" id="hist-which">
+            <button type="button" data-v="m1" aria-pressed="true">Heavier object</button>
+            <button type="button" data-v="m2" aria-pressed="false">Lighter object</button>
+            <button type="button" data-v="mf" aria-pressed="false">Black hole left after</button>
+          </div>
+        </div>
+      </div>
+      <div class="chart" id="hist-chart"></div>
+      <p class="note" id="hist-note"></p>
+    </div>
+    <div class="prose">
+      <h3>What to notice</h3>
+      <ul class="notice-list">
+        <li><b>Two crowds.</b> Black holes pile up around 10 and around 35 times the Sun's mass. Those are the most common black holes that end up merging.</li>
+        <li><b>The lower gap really is quiet.</b> Only one object, in GW230529, sits clearly between 3 and 5 Suns.</li>
+        <li><b>The pair-instability gap is not empty.</b> 52 heavier black holes sit between 50 and 130 Suns. Switch to "Black hole left after" to see why that's less surprising for leftovers: two 30-Sun black holes make a 57-Sun one.</li>
+        <li><b>Careful:</b> heavy mergers are louder, so the catalog has more of them than a fair sample of the universe would. That's a <span class="term" data-term="selection">selection effect</span>.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ================= 4. TIMELINE ================= -->
+  <section id="timeline" aria-labelledby="h-time">
+    <div class="prose">
+      <span class="eyebrow">Chapter 4</span>
+      <h2 id="h-time">Ten years of listening</h2>
+      <p>The detectors listen in <span class="term" data-term="run">observing runs</span> and switch off between them for upgrades.
+        Each upgrade made them more sensitive, so they could hear farther and catch more mergers.
+        Hover over the chart to read the running total on any day, or over a gray band to learn about that run.</p>
+    </div>
+    <div class="panel">
+      <div class="legend" id="time-legend"></div>
+      <div class="chart" id="time-chart"></div>
+      <div class="table-wrap">
+        <table aria-label="Detections in each observing run">
+          <thead><tr><th>Run</th><th>Dates</th><th><span class="term" data-term="detectors">Detectors</span></th><th class="n">Detections</th><th>Detections per week</th></tr></thead>
+          <tbody id="runs-body"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="prose">
+      <p>The catalog was published through 2026, but its newest detection is from 20 January 2025.
+        Detections after that haven't been added to a published catalog yet. The gap between the two lines is the
+        109 weaker candidates that have no published masses: their chance of being real is lower (about 70% instead of 99%).</p>
+    </div>
+  </section>
+
+  <!-- ================= 5. DISTANCE ================= -->
+  <section id="distance" aria-labelledby="h-dist">
+    <div class="prose">
+      <span class="eyebrow">Chapter 5</span>
+      <h2 id="h-dist">How far can we hear?</h2>
+      <p>Gravitational waves travel at the speed of light, so looking far away also means looking back in time.
+        The farthest merger here happened more than 8 billion years ago, before the Sun existed.
+        Each dot shows the black hole left over after a merger, plotted against its
+        <span class="term" data-term="mpc">distance</span> or its <span class="term" data-term="lookback">light-travel time</span>.</p>
+    </div>
+    <div class="panel">
+      <div class="controls">
+        <div class="control"><span id="dist-label">Across</span>
+          <div class="seg" role="group" aria-labelledby="dist-label" id="dist-which">
+            <button type="button" data-v="dist" aria-pressed="true">Distance (Mpc)</button>
+            <button type="button" data-v="lookback" aria-pressed="false">Light-travel time (billion years)</button>
+          </div>
+        </div>
+      </div>
+      <div class="chart" id="dist-chart"></div>
+      <p class="note">The black bars show the middle value (median) of the final mass for the nearest, middle and farthest thirds of the mergers.</p>
+    </div>
+    <div class="prose">
+      <p class="callout">The farthest third of the mergers are more than three times heavier than the nearest third.
+        Black holes weren't heavier in the past. Heavy mergers are louder, so we can hear them from much farther away,
+        while small ones are only heard when they are close. Astronomers call this a
+        <span class="term" data-term="selection">selection effect</span>, and correct for it before saying what the universe is really like.</p>
+    </div>
+  </section>
+
+  <!-- ================= 6. GAP ================= -->
+  <section id="gap" aria-labelledby="h-gap">
+    <div class="prose">
+      <span class="eyebrow">Chapter 6 · Stretch goal</span>
+      <h2 id="h-gap">The forbidden zone</h2>
+      <p>The cores of the very biggest stars get so hot that light turns into pairs of electrons and positrons.
+        That drains the pressure holding the core up, so it collapses and sets off a runaway nuclear explosion.
+        The heaviest stars blow themselves apart completely and leave <b>no black hole at all</b>.
+        So theory says that between roughly 50 and 130 Suns, no black hole can be born straight from a star: the
+        <span class="term" data-term="pisn">pair-instability gap</span>.</p>
+      <p>Yet the catalog has black holes there. One explanation: they are
+        <span class="term" data-term="hier">second-generation black holes</span>, built by earlier mergers. Those tend to spin,
+        so spin (the dot colors) is a clue. Nobody knows exactly where the gap starts, so drag the slider and see how the answer changes.</p>
+    </div>
+    <div class="panel">
+      <div class="controls">
+        <div class="control">
+          <label for="edge">The gap starts at</label>
+          <input id="edge" type="range" min="40" max="70" step="1" value="50">
+          <output id="edge-out" for="edge" class="mono">50 M☉</output>
+        </div>
+      </div>
+      <p id="gap-readout" aria-live="polite"></p>
+      <div class="legend" id="gap-legend"></div>
+      <div class="chart" id="gap-chart"></div>
+      <p class="note">Each row is one merger whose heavier black hole is very likely above 40 Suns. The line is its 90% range and the dot is the best guess, colored by <span class="term" data-term="spin">effective spin</span>.
+        Rows in solid ink have their whole range inside or above the gap. Faded rows might be below it.</p>
+    </div>
+    <div class="prose">
+      <p>Heavy black holes give very short signals, so their spins are hard to measure, and 19 events is a small sample.
+        The spins are a hint that some gap black holes were built by earlier mergers, not proof.</p>
+    </div>
+  </section>
+
+  <!-- ================= 7. QUIZ ================= -->
+  <section id="quiz" aria-labelledby="h-quiz">
+    <div class="prose">
+      <span class="eyebrow">Chapter 7</span>
+      <h2 id="h-quiz">Check yourself</h2>
+      <p>Five questions. Every answer is somewhere in the charts above.</p>
+    </div>
+    <div class="quiz" id="quiz-box"></div>
+    <p class="score" id="quiz-score" aria-live="polite"></p>
+  </section>
+
+  <!-- ================= DATA ================= -->
+  <section id="data" aria-labelledby="h-data">
+    <div class="prose">
+      <span class="eyebrow">The data</span>
+      <h2 id="h-data">Every detection in the catalog</h2>
+      <p>All 391 events. Click a column name to sort, and click a row to show that merger in the graveyard.
+        Masses are in Suns, shown as best guess (90% range). "Chance it's real" is
+        <span class="term" data-term="pastro">p_astro</span>; it is blank for early events because the catalog doesn't list it for them.</p>
+    </div>
+    <div class="panel">
+      <div class="controls">
+        <div class="control"><label for="table-search">Search by name</label>
+          <input id="table-search" type="search" placeholder="e.g. GW2311" autocomplete="off"></div>
+        <span class="note" id="table-count"></span>
+      </div>
+      <div class="data-scroll"><table id="data-table"></table></div>
+    </div>
+  </section>
+
+  <!-- ================= GLOSSARY ================= -->
+  <section id="glossary" aria-labelledby="h-gloss">
+    <div class="prose">
+      <span class="eyebrow">Reference</span>
+      <h2 id="h-gloss">Glossary</h2>
+    </div>
+    <dl class="gloss" id="gloss-list"></dl>
+  </section>
+</main>
+
+<footer class="foot" id="sources">
+  <h2>Where the data comes from</h2>
+  <ul>
+    <li><b>Catalog:</b> LIGO Scientific Collaboration, Virgo Collaboration and KAGRA Collaboration, Gravitational-Wave Transient Catalog
+      (cumulative, GWTC-1 through GWTC-5.0), from the Gravitational Wave Open Science Center:
+      <a href="https://gwosc.org/eventapi/html/GWTC/">gwosc.org/eventapi/html/GWTC/</a>. Downloaded <span id="made-date"></span>.</li>
+    <li><b>Observing-run dates:</b> GWOSC API, <a href="https://gwosc.org/api/v2/runs">gwosc.org/api/v2/runs</a>.</li>
+    <li><b>Light-travel times</b> are worked out from each event's redshift with the Planck 2015 cosmology (astropy).</li>
+    <li><b>The merger simulator</b> is an illustration from the leading-order chirp formula, not detector data.</li>
+    <li>GWOSC data are released under the <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a> license.
+      References to cite: <a href="https://gwosc.org/acknowledgement/">gwosc.org/acknowledgement</a>.</li>
+  </ul>
+  <blockquote>This research has made use of data or software obtained from the Gravitational Wave Open Science Center (gwosc.org),
+    a service of the LIGO Scientific Collaboration, the Virgo Collaboration, and KAGRA.</blockquote>
+  <p>Made for CS85 project 18 with code in <span class="mono">demo/</span> of the course repo. The notebook
+    <span class="mono">notebooks/18_stellar_graveyard.ipynb</span> has the same analysis step by step.</p>
+</footer>
+
+<div id="tip" role="tooltip" hidden></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="graveyard_data.js"></script>
+<script>
+(function () {
+'use strict';
+
+/* =====================================================================================
+   0. Data and small helpers
+   ===================================================================================== */
+const DATA = window.GRAVEYARD;
+if (!window.d3 || !DATA) {
+  const box = document.getElementById('load-error');
+  box.hidden = false;
+  box.textContent = !window.d3
+    ? 'The charting library (D3) did not load, so the charts cannot be drawn. Check your internet connection and reload.'
+    : 'The data file graveyard_data.js did not load. Keep it in the same folder as this page, or rebuild it with demo/make_demo_data.py.';
+  return;
+}
+
+const events = DATA.events.map(e => Object.assign({}, e, { date: new Date(e.date) }));
+const withMasses = events.filter(e => e.m1 && e.m2);
+const byName = new Map(events.map(e => [e.name, e]));
+const runs = DATA.runs.map(r => Object.assign({}, r, { start: new Date(r.start), end: new Date(r.end) }));
+const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+document.getElementById('made-date').textContent = DATA.made;
+
+// Numbers: one decimal below 10, whole numbers above
+const fm = v => v == null ? '—' : (Math.abs(v) < 10 ? v.toFixed(1) : Math.round(v).toLocaleString('en-US'));
+const fmSpin = v => (v > 0.005 ? '+' : v < -0.005 ? '−' : '') + Math.abs(v).toFixed(2);
+const rangeText = (a, unit = '', f = fm) => a ? `${f(a[0])}${unit} <span class="r">(${f(a[1])}–${f(a[2])})</span>` : '—';
+const fmtDate = d => d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+const fmtClock = d => d.toISOString().slice(11, 19) + ' UTC';
+const shortName = n => n.length > 8 ? n.slice(0, 8) : n;
+function travelWords(gyr) {
+  return gyr < 1 ? `${Math.round(gyr * 1000 / 10) * 10} million years` : `${gyr.toFixed(1)} billion years`;
+}
+
+// What kind of pair is it? (by the best-guess masses; 3 Suns is the rough neutron-star limit)
+function pairType(e) {
+  if (!e.m1) return null;
+  if (e.m2[0] >= 3) return 'bbh';
+  return e.m1[0] < 3 ? 'bns' : 'nsbh';
+}
+const PAIRS = {
+  bbh:  { label: 'two black holes',           cssVar: '--s1' },
+  nsbh: { label: 'black hole + neutron star', cssVar: '--s2' },
+  bns:  { label: 'two neutron stars',         cssVar: '--s3' },
+};
+function objectWord(m) {
+  if (m < 2.5) return 'a neutron star';
+  if (m < 3) return 'a very heavy neutron star or a very light black hole';
+  if (m < 5) return 'a mass-gap object (probably a very light black hole)';
+  return 'a black hole';
+}
+function objectShort(m) {
+  if (m < 2.5) return 'a neutron star';
+  if (m < 3) return 'a heavy neutron star or a light black hole';
+  if (m < 5) return 'a mass-gap object, probably a very light black hole';
+  if (m < 50) return 'a black hole';
+  if (m <= 130) return 'a black hole in the pair-instability gap';
+  return 'a black hole above the pair-instability gap';
+}
+
+// A few famous events, with one plain fact each
+const FAME = {
+  'GW150914': 'The first gravitational wave ever detected. It led to the 2017 Nobel Prize in Physics.',
+  'GW170817': 'Two neutron stars. Telescopes around the world also saw the explosion it made (a kilonova) in the galaxy NGC 4993.',
+  'GW190425': 'The second neutron-star merger. At about 3.4 Suns in total, it was heavier than any neutron-star pair seen in our galaxy.',
+  'GW190521': 'The first clear example of a black hole inside the pair-instability gap, announced in 2020.',
+  'GW190814': 'Its lighter object, about 2.6 Suns, is either the heaviest neutron star or the lightest black hole ever found.',
+  'GW200115_042309': 'One of the first two confirmed black hole + neutron star mergers, both found in January 2020.',
+  'GW230529_181500': 'Its heavier object, about 3.7 Suns, sits in the lower mass gap between the heaviest neutron stars and the lightest black holes.',
+  'GW231123_135430': 'The heaviest merger in the catalog. Both black holes were also spinning very fast.',
+  'GW250114_082203': 'The loudest signal in the catalog. Scientists used it to check Hawking’s prediction that a black hole’s surface area can never shrink, and it passed.',
+};
+
+// Decode an event name like GW231123_135430
+function decodeName(name) {
+  const m = name.match(/^GW(\d\d)(\d\d)(\d\d)(?:_(\d\d)(\d\d)(\d\d))?$/);
+  if (!m) return '';
+  const d = new Date(Date.UTC(2000 + +m[1], +m[2] - 1, +m[3]));
+  let s = `<b class="mono">GW</b> means gravitational wave. <b class="mono">${m[1]}${m[2]}${m[3]}</b> is the date it arrived,
+    written year-month-day: ${fmtDate(d)}.`;
+  if (m[4]) s += ` <b class="mono">_${m[4]}${m[5]}${m[6]}</b> is the time of day in UTC: ${m[4]}:${m[5]}:${m[6]}. Newer names include it because so many events arrive on the same day.`;
+  return s;
+}
+
+/* =====================================================================================
+   1. Glossary and tooltips
+   ===================================================================================== */
+const GLOSSARY = {
+  gw: ['Gravitational wave', 'A ripple in space-time itself, sent out when heavy objects speed up or whirl around each other. It stretches and squeezes everything it passes through by a tiny amount.'],
+  bh: ['Black hole', 'A place where so much mass is squeezed into so small a space that nothing, not even light, can escape. Most of the ones here formed when a big star collapsed at the end of its life.'],
+  ns: ['Neutron star', 'The crushed core left after some big stars explode: about 1.4 Suns packed into a ball only about 20 km across. Heavier than about 2 to 3 Suns, it would collapse into a black hole.'],
+  msun: ['Solar mass (M☉)', 'The mass of our Sun, about 2 × 10³⁰ kg. Astronomers weigh stars and black holes in Suns: a 30 M☉ black hole is 30 times heavier than the Sun.'],
+  ligo: ['LIGO, Virgo and KAGRA', 'Gravitational-wave detectors in the USA (LIGO, at two sites), Italy (Virgo) and Japan (KAGRA). Each bounces laser beams along kilometre-long tunnels to measure stretches smaller than a thousandth of a proton.'],
+  chirp: ['Chirp', 'The sound a merger makes if you turn its waves into audio: a quick swoop up in pitch and loudness as the two objects whirl faster just before they collide.'],
+  chirpmass: ['Chirp mass', 'A particular mix of the two masses that controls how fast the chirp rises in pitch. It is the mass LIGO measures most precisely.'],
+  primary: ['Primary and secondary mass', 'In each pair, the heavier object is the primary (m₁) and the lighter one is the secondary (m₂).'],
+  final: ['Final mass', 'The mass of the single black hole left after a merger. It is a few percent less than the two masses added together, because that much mass turned into gravitational-wave energy (E = mc²).'],
+  spin: ['Effective spin (χ_eff)', 'One number for how much the two spins line up with the orbit. +1: spinning as fast as possible in the same direction as the orbit. 0: not spinning, or spins tilted sideways. −1: spinning against the orbit.'],
+  mpc: ['Megaparsec (Mpc)', 'A distance unit: 1 Mpc is about 3.26 million light-years. The catalog gives the luminosity distance, which is how far away the source seems, judging by how loud it is.'],
+  lookback: ['Light-travel time', 'How long the waves were on their way to us. They travel at the speed of light, so 1 billion years of travel means the merger happened 1 billion years ago. Worked out from the redshift.'],
+  redshift: ['Redshift (z)', 'How much the expanding universe has stretched the waves on their way to us. A bigger z means farther away and longer ago.'],
+  run: ['Observing run', 'A stretch of months when the detectors are on and listening. Between runs they are switched off for upgrades. Runs are named O1, O2, O3 and O4 (O for observing); O3 and O4 were split into parts a and b.'],
+  detectors: ['Detector codes', 'H1 is LIGO Hanford (Washington state), L1 is LIGO Livingston (Louisiana), and V1 is Virgo (near Pisa, Italy).'],
+  pastro: ['p_astro', 'The probability that a signal came from space rather than being a fluke of detector noise. 0.99 means a 99% chance it is real.'],
+  far: ['False-alarm rate', 'How often detector noise alone would make a signal this convincing. "Once in 10,000 years" means it is very unlikely to be noise.'],
+  snr: ['Signal-to-noise ratio', 'How loud the signal is compared with the detector’s background hiss. About 8 or more counts as a clear detection. The loudest so far, GW250114, reached about 79.'],
+  gwtc: ['GWTC', 'The Gravitational-Wave Transient Catalog, the official list of detections by LIGO, Virgo and KAGRA. Each new version (GWTC-1, 2.1, 3, 4.1, 5.0) adds newer detections.'],
+  lowergap: ['Lower mass gap', 'The range from about 3 to 5 Suns: heavier than any known neutron star, lighter than the black holes found in our own galaxy. Very few objects have been seen there.'],
+  pisn: ['Pair-instability gap', 'A range from roughly 50 to 130 Suns where theory says no black hole can form straight from a dying star, because stars that big blow themselves apart completely.'],
+  hier: ['Second-generation black hole', 'A black hole that was made by an earlier merger. In crowded star clusters, leftovers can pair up and merge again, building black holes too heavy for any single star to make. They tend to spin quickly.'],
+  selection: ['Selection effect', 'When the way data is collected changes what you see. Loud, heavy mergers can be heard from much farther away than quiet ones, so the catalog has more heavy ones than a fair sample of the universe.'],
+  range90: ['90% range', 'Each number in the catalog is a best guess with a range around it. There is a 90% chance the true value is inside the range. Example: 35 (31–41) M☉.'],
+  median: ['Median', 'The middle value. Here it is the catalog’s single best guess for each number.'],
+};
+document.getElementById('gloss-list').innerHTML = Object.values(GLOSSARY)
+  .sort((a, b) => a[0].localeCompare(b[0]))
+  .map(([name, def]) => `<div><dt>${name}</dt><dd>${def}</dd></div>`).join('');
+
+const tip = document.getElementById('tip');
+let tipOwner = null;   // 'term' or 'chart'
+function placeTip(x, y) {
+  const pad = 14, r = tip.getBoundingClientRect();
+  let left = x + pad, top = y + pad;
+  if (left + r.width > window.innerWidth - 8) left = x - r.width - pad;
+  if (left < 8) left = 8;
+  if (top + r.height > window.innerHeight - 8) top = y - r.height - pad;
+  if (top < 8) top = 8;
+  tip.style.left = left + 'px';
+  tip.style.top = top + 'px';
+}
+function showTip(html, x, y, owner) {
+  tip.innerHTML = html;
+  tip.hidden = false;
+  tipOwner = owner;
+  placeTip(x, y);
+}
+function hideTip() { tip.hidden = true; tipOwner = null; tipTerm = null; }
+
+function termHTML(el) {
+  const g = GLOSSARY[el.dataset.term];
+  return g ? `<b>${g[0]}</b>${g[1]}` : '';
+}
+let tipTerm = null;   // the glossary word whose tooltip is showing
+function showTerm(el) {
+  const r = el.getBoundingClientRect();
+  showTip(termHTML(el), r.left, r.bottom - 6, 'term');
+  tipTerm = el;
+}
+function enhanceTerms(root) {
+  root.querySelectorAll('.term').forEach(el => {
+    el.tabIndex = 0;
+    el.setAttribute('role', 'button');
+    el.setAttribute('aria-describedby', 'tip');
+  });
+}
+enhanceTerms(document);
+document.addEventListener('pointerover', e => {
+  const t = e.target.closest && e.target.closest('.term');
+  if (t && e.pointerType === 'mouse') showTerm(t);
+});
+document.addEventListener('pointerout', e => {
+  const t = e.target.closest && e.target.closest('.term');
+  if (t && e.pointerType === 'mouse' && !t.contains(e.relatedTarget) && tipOwner === 'term') hideTip();
+});
+document.addEventListener('focusin', e => { if (e.target.classList && e.target.classList.contains('term')) showTerm(e.target); });
+document.addEventListener('focusout', e => { if (e.target.classList && e.target.classList.contains('term')) hideTip(); });
+document.addEventListener('click', e => {
+  const t = e.target.closest && e.target.closest('.term');
+  if (t) { e.preventDefault(); if (tipTerm === t && !tip.hidden && e.pointerType !== 'mouse') hideTip(); else showTerm(t); }
+  else if (tipOwner === 'term') hideTip();
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') hideTip();
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.classList && e.target.classList.contains('term')) { e.preventDefault(); showTerm(e.target); }
+});
+window.addEventListener('scroll', () => { if (!tip.hidden) hideTip(); }, { passive: true });
+
+// Short tooltip for one event (used by every chart)
+function eventTip(e, extra = '') {
+  const type = pairType(e);
+  return `<div class="t-name">${e.name}</div>
+    <div class="t-sub">${fmtDate(e.date)}${type ? ' · ' + PAIRS[type].label : ''}</div>
+    <dl>
+      <dt>Heavier</dt><dd>${rangeText(e.m1, ' M☉')}</dd>
+      <dt>Lighter</dt><dd>${rangeText(e.m2, ' M☉')}</dd>
+      <dt>Left after</dt><dd>${rangeText(e.mf, ' M☉')}</dd>
+      <dt>Distance</dt><dd>${rangeText(e.dist, ' Mpc')}</dd>
+      <dt>Travel time</dt><dd>${e.lookback ? travelWords(e.lookback[0]) : '—'}</dd>
+      <dt>Spin</dt><dd>${e.chi ? fmSpin(e.chi[0]) : '—'}</dd>
+    </dl>${extra}`;
+}
+
+/* =====================================================================================
+   2. Theme colors and the chart helper
+   ===================================================================================== */
+let C = {};
+function readColors() {
+  const s = getComputedStyle(document.documentElement);
+  const v = n => s.getPropertyValue(n).trim();
+  C = {
+    s1: v('--s1'), s2: v('--s2'), s3: v('--s3'), muted: v('--muted'), ink: v('--ink'),
+    seq: [v('--seq-0'), v('--seq-1'), v('--seq-2'), v('--seq-3')],
+    div: [v('--div-n2'), v('--div-n1'), v('--div-0'), v('--div-p1'), v('--div-p2')],
+  };
+  C.seqScale = d3.scaleSequentialLog(d3.interpolateRgbBasis(C.seq)).domain([40, 8300]).clamp(true);
+  C.spinScale = d3.scaleSequential(d3.interpolateRgbBasis(C.div)).domain([-0.6, 0.6]).clamp(true);
+}
+readColors();
+const redraws = [];
+function onThemeChange() { readColors(); redraws.forEach(f => f()); }
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', onThemeChange);
+new MutationObserver(onThemeChange).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+// Make a responsive SVG chart: draw(svg, width) is called again whenever the width or theme changes
+function makeChart(el, draw) {
+  const svg = d3.select(el).append('svg');
+  let lastW = 0;
+  const render = () => { const w = Math.max(280, Math.floor(el.clientWidth)); lastW = w; draw(svg, w); };
+  new ResizeObserver(() => { if (Math.floor(el.clientWidth) !== lastW) requestAnimationFrame(render); }).observe(el);
+  redraws.push(render);
+  render();
+  return render;
+}
+const logTicks = (lo, hi) => [1, 2, 3, 5, 10, 20, 30, 50, 100, 200, 300, 500, 1000, 2000, 3000, 5000, 10000].filter(t => t >= lo && t <= hi);
+function axes(svg, x, y, W, H, m, xTicks, yTicks, xTitle, yTitle, xFmt = d3.format(','), yFmt = d3.format(',')) {
+  const g = svg.append('g');
+  g.selectAll('.gx').data(xTicks).join('line').attr('class', 'gridline').attr('x1', x).attr('x2', x).attr('y1', m.t).attr('y2', H - m.b);
+  g.selectAll('.gy').data(yTicks).join('line').attr('class', 'gridline').attr('y1', y).attr('y2', y).attr('x1', m.l).attr('x2', W - m.r);
+  svg.append('g').attr('class', 'ax').attr('transform', `translate(0,${H - m.b})`)
+    .call(d3.axisBottom(x).tickValues(xTicks).tickFormat(xFmt).tickSizeOuter(0));
+  svg.append('g').attr('class', 'ax').attr('transform', `translate(${m.l},0)`)
+    .call(d3.axisLeft(y).tickValues(yTicks).tickFormat(yFmt).tickSizeOuter(0));
+  svg.append('text').attr('class', 'ax-title').attr('x', (m.l + W - m.r) / 2).attr('y', H - 6).attr('text-anchor', 'middle').text(xTitle);
+  svg.append('text').attr('class', 'ax-title').attr('transform', `translate(14,${(m.t + H - m.b) / 2}) rotate(-90)`).attr('text-anchor', 'middle').text(yTitle);
+}
+function segButtons(id, onChange) {
+  const box = document.getElementById(id);
+  box.addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    box.querySelectorAll('button').forEach(x => x.setAttribute('aria-pressed', String(x === b)));
+    onChange(b.dataset.v);
+  });
+}
+// Error crosshair for one event: horizontal range on x, vertical range on y
+function crosshair(g, x, y, xr, yr) {
+  g.selectAll('*').remove();
+  if (!xr || !yr) return;
+  const cap = 4;
+  g.append('line').attr('class', 'err').attr('x1', x(xr[1])).attr('x2', x(xr[2])).attr('y1', y(yr[0])).attr('y2', y(yr[0]));
+  g.append('line').attr('class', 'err').attr('y1', y(yr[1])).attr('y2', y(yr[2])).attr('x1', x(xr[0])).attr('x2', x(xr[0]));
+  [[x(xr[1]), y(yr[0]), 'v'], [x(xr[2]), y(yr[0]), 'v'], [x(xr[0]), y(yr[1]), 'h'], [x(xr[0]), y(yr[2]), 'h']].forEach(([a, b, o]) =>
+    g.append('line').attr('class', 'err-cap')
+      .attr('x1', o === 'v' ? a : a - cap).attr('x2', o === 'v' ? a : a + cap)
+      .attr('y1', o === 'v' ? b - cap : b).attr('y2', o === 'v' ? b + cap : b));
+}
+
+/* =====================================================================================
+   3. The merger simulator (physics from the leading-order "chirp" formula)
+   ===================================================================================== */
+const T_SUN = 4.925491e-6;                     // G * (mass of the Sun) / c^3, in seconds
+const chirpMass = (a, b) => Math.pow(a * b, 0.6) / Math.pow(a + b, 0.2);
+const fMerge = M => 1 / (Math.pow(6, 1.5) * Math.PI * T_SUN * M);                // wave pitch when the orbit ends [Hz]
+const tauAt = (f, Mc) => (5 / 256) * Math.pow(Math.PI * f, -8 / 3) * Math.pow(T_SUN * Mc, -5 / 3);   // time left [s]
+const freqAt = (tau, Mc) => (1 / Math.PI) * Math.pow(5 / (256 * tau), 3 / 8) * Math.pow(T_SUN * Mc, -5 / 8);
+const phaseAt = (tau, Mc) => -2 * Math.pow(tau / (5 * T_SUN * Mc), 5 / 8);       // wave phase [radians]
+const FINAL_FRACTION = d3.median(withMasses.filter(e => e.mf && e.m2[0] >= 5), e => e.mf[0] / (e.m1[0] + e.m2[0]));
+
+function signalFor(a, b) {
+  const M = a + b, Mc = chirpMass(a, b), fEnd = fMerge(M);
+  // LIGO hears well from about 20 Hz up. Pairs that merge below that are drawn from half their merger pitch.
+  const fStart = fEnd > 20 ? 20 : fEnd / 2;
+  const tauEnd = tauAt(fEnd, Mc), tauStart = tauAt(fStart, Mc);
+  return {
+    M, Mc, fEnd, fStart, tauEnd, tauStart, duration: tauStart - tauEnd,
+    cycles: (phaseAt(tauEnd, Mc) - phaseAt(tauStart, Mc)) / (2 * Math.PI),
+    tooHeavy: fEnd <= 20,
+  };
+}
+function noteName(f) {
+  const n = Math.round(12 * Math.log2(f / 440) + 69);
+  return ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'][((n % 12) + 12) % 12] + (Math.floor(n / 12) - 1);
+}
+function durationWords(s) {
+  if (s < 1) return `${s.toFixed(2)} seconds`;
+  if (s < 120) return `${s.toFixed(1)} seconds`;
+  return `${(s / 60).toFixed(1)} minutes`;
+}
+
+// Mass sliders use a log scale from 1 to 150 Suns
+const massFromSlider = v => Math.pow(10, (v / 1000) * Math.log10(150));
+const sliderFromMass = m => Math.round(1000 * Math.log10(m) / Math.log10(150));
+const sim = { a: 34.6, b: 30.0 };
+const sA = document.getElementById('mass-a'), sB = document.getElementById('mass-b');
+
+function updateSim() {
+  const big = Math.max(sim.a, sim.b), small = Math.min(sim.a, sim.b);
+  document.getElementById('mass-a-out').textContent = fm(sim.a) + ' M☉';
+  document.getElementById('mass-b-out').textContent = fm(sim.b) + ' M☉';
+  document.getElementById('mass-a-kind').textContent = 'That would be ' + objectShort(sim.a) + '.';
+  document.getElementById('mass-b-kind').textContent = 'That would be ' + objectShort(sim.b) + '.';
+  const s = signalFor(big, small);
+  const final = s.M * FINAL_FRACTION, lost = s.M - final;
+  const joules = lost * 1.989e30 * (2.998e8 ** 2);
+  const sunYears = joules / 3.828e26 / 3.156e7;
+  const sunText = sunYears > 1e12 ? `${(sunYears / 1e12).toFixed(0)} trillion years` : `${(sunYears / 1e9).toFixed(0)} billion years`;
+  const rows = [
+    ['Total mass', `${fm(s.M)} M☉`, ''],
+    [`<span class="term" data-term="chirpmass">Chirp mass</span>`, `${fm(s.Mc)} M☉`, 'sets how fast the pitch rises'],
+    ['Black hole left after (rough)', `≈ ${fm(final)} M☉`, s.M < 5 ? 'for neutron stars this is a very rough guess' : ''],
+    ['Mass turned into waves (rough)', `≈ ${fm(lost)} M☉`, `as much energy as the Sun gives off in ${sunText}`],
+    ['Pitch at merger', `${Math.round(s.fEnd)} Hz`, `around the note ${noteName(s.fEnd)} (middle C is C4)`],
+    ['Heard for', s.tooHeavy ? 'a split second' : durationWords(s.duration), s.tooHeavy ? `merges below 20 Hz, so we only catch the end` : 'from 20 Hz to the merger'],
+    ['Wiggles heard', Math.round(s.cycles).toLocaleString('en-US'), 'wave cycles in LIGO’s range'],
+  ];
+  document.getElementById('readouts').innerHTML = rows.map(([k, v, note]) =>
+    `<div><dt>${k}</dt><dd>${v}${note ? `<small>${note}</small>` : ''}</dd></div>`).join('');
+  enhanceTerms(document.getElementById('readouts'));
+  document.getElementById('wave-caption').textContent = s.tooHeavy
+    ? `These are so heavy that they merge at only about ${Math.round(s.fEnd)} vibrations per second, below the roughly 20 that LIGO hears well. The detectors catch just the last few wiggles, which is why the heaviest events look like brief blips.`
+    : `The wave LIGO would record, from when it gets loud enough to hear (about 20 vibrations per second) to the moment of merger: ${durationWords(s.duration)} and ${Math.round(s.cycles).toLocaleString('en-US')} wiggles.`;
+  drawWave();
+}
+function setMasses(a, b) {
+  sim.a = a; sim.b = b;
+  sA.value = sliderFromMass(a); sB.value = sliderFromMass(b);
+  updateSim();
+}
+sA.addEventListener('input', () => { sim.a = massFromSlider(+sA.value); updateSim(); });
+sB.addEventListener('input', () => { sim.b = massFromSlider(+sB.value); updateSim(); });
+
+const PRESETS = ['GW150914', 'GW170817', 'GW230529_181500', 'GW190521', 'GW231123_135430'];
+document.getElementById('presets').innerHTML = PRESETS.map(n => {
+  const e = byName.get(n);
+  return `<button class="chip" type="button" data-n="${n}" title="${fm(e.m1[0])} + ${fm(e.m2[0])} M☉">${shortName(n)}</button>`;
+}).join('');
+document.getElementById('presets').addEventListener('click', ev => {
+  const b = ev.target.closest('button'); if (!b) return;
+  const e = byName.get(b.dataset.n);
+  setMasses(e.m1[0], e.m2[0]);
+});
+
+// ---- canvases: sharp on high-resolution screens ----
+function fitCanvas(canvas) {
+  if (!canvas._ratio) canvas._ratio = canvas.height / canvas.width;   // shape from the HTML width/height
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const w = canvas.clientWidth || canvas.parentNode.clientWidth;
+  const h = Math.max(Math.round(w * canvas._ratio), +(canvas.dataset.minh || 0));
+  if (canvas._w !== w || canvas._h !== h || canvas._dpr !== dpr) {
+    canvas.style.height = h + 'px';
+    canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
+    canvas._w = w; canvas._h = h; canvas._dpr = dpr;
+  }
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  return { ctx, w, h };
+}
+const scopeColors = () => {
+  const s = getComputedStyle(document.documentElement), v = n => s.getPropertyValue(n).trim();
+  return { bg: v('--scope-bg'), grid: v('--scope-grid'), ink: v('--scope-ink'), dim: v('--scope-dim'),
+           trace: v('--scope-trace'), ring: v('--scope-ring'), ns: v('--scope-ns') };
+};
+const SC = scopeColors();
+
+// ---- the orbit animation (hero and simulator share it) ----
+function makeOrbit(canvas, getMasses, withTrace) {
+  const INSPIRAL = 7, HOLD = 2.4, ORBITS = 6;     // seconds of animation, seconds after merger, orbits shown
+  let t = 0, last = null, ringT = 0, rings = [], history = [], merged = false, lastHalf = 0, running = false, visible = true;
+
+  function bodyRadius(m) { return m < 3 ? 3.2 : Math.max(4.5, Math.min(17, 5.2 * Math.cbrt(m / 10))); }
+
+  function step(dt, w, h) {
+    t += dt;
+    const total = INSPIRAL + HOLD;
+    if (t > total) { t = 0; rings = []; merged = false; lastHalf = 0; }
+    const [mA, mB] = getMasses(), M = mA + mB;
+    const cx = w / 2, cy = (withTrace ? h * 0.38 : h * 0.5), rMax = Math.min(w, (withTrace ? h * 0.72 : h)) * 0.34;
+    const RA = bodyRadius(mA), RB = bodyRadius(mB), rMerge = (RA + RB) * 0.9;
+    const s = Math.max(1 - t / INSPIRAL, 0);           // fraction of time left before merger
+    let r = rMax * Math.pow(s, 0.25);
+    const phi = -2 * Math.PI * ORBITS * Math.pow(s, 0.625);
+    let h_ = 0;
+    if (!merged && r <= rMerge) { merged = true; ringT = t; rings.push({ born: t, strong: true }); }
+    if (!merged) {
+      const omega = Math.pow(Math.max(s, 1e-4), -0.375);
+      h_ = Math.pow(omega / 10, 2 / 3) * Math.cos(2 * phi);
+      const half = Math.floor(-phi / Math.PI);
+      if (half !== lastHalf) { lastHalf = half; rings.push({ born: t, strong: false }); }
+    } else {
+      const since = t - ringT;
+      h_ = Math.exp(-since * 9) * Math.cos(since * 70) * 0.9;
+    }
+    history.push(h_);
+    if (history.length > 420) history.shift();
+    return { cx, cy, r, phi, RA, RB, mA, mB, M, merged, w, h, rMax };
+  }
+
+  function draw(st) {
+    const { ctx, w, h } = fitCanvas(canvas);
+    ctx.fillStyle = SC.bg; ctx.fillRect(0, 0, w, h);
+    // faint grid like an oscilloscope screen
+    ctx.strokeStyle = SC.grid; ctx.lineWidth = 1;
+    for (let gx = 0; gx <= w; gx += w / 10) { ctx.beginPath(); ctx.moveTo(gx + 0.5, 0); ctx.lineTo(gx + 0.5, h); ctx.stroke(); }
+    for (let gy = 0; gy <= h; gy += h / 8) { ctx.beginPath(); ctx.moveTo(0, gy + 0.5); ctx.lineTo(w, gy + 0.5); ctx.stroke(); }
+    // ripples
+    const speed = Math.max(w, h) * 0.32;
+    rings = rings.filter(rg => (t - rg.born) * speed < Math.max(w, h));
+    rings.forEach(rg => {
+      const rad = (t - rg.born) * speed;
+      const alpha = Math.max(0, (rg.strong ? 0.75 : 0.35) * (1 - rad / Math.max(w, h)));
+      ctx.strokeStyle = SC.ring; ctx.globalAlpha = alpha; ctx.lineWidth = rg.strong ? 2.5 : 1.2;
+      ctx.beginPath(); ctx.arc(st.cx, st.cy, rad, 0, 2 * Math.PI); ctx.stroke();
+    });
+    ctx.globalAlpha = 1;
+    const drawBody = (x, y, m, R) => {
+      if (m < 3) {   // neutron star: small, hot and bright
+        const g = ctx.createRadialGradient(x, y, 0, x, y, R * 3);
+        g.addColorStop(0, SC.ns); g.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, R * 3, 0, 2 * Math.PI); ctx.fill();
+        ctx.fillStyle = '#fff4dc'; ctx.beginPath(); ctx.arc(x, y, R, 0, 2 * Math.PI); ctx.fill();
+      } else {       // black hole: a dark disc with a bright ring of bent light
+        ctx.strokeStyle = SC.ring; ctx.lineWidth = 2; ctx.shadowColor = SC.ring; ctx.shadowBlur = 12;
+        ctx.beginPath(); ctx.arc(x, y, R + 1.5, 0, 2 * Math.PI); ctx.stroke(); ctx.shadowBlur = 0;
+        ctx.fillStyle = '#000'; ctx.beginPath(); ctx.arc(x, y, R, 0, 2 * Math.PI); ctx.fill();
+      }
+    };
+    if (!st.merged) {
+      const rA = st.r * st.mB / st.M, rB = st.r * st.mA / st.M;
+      drawBody(st.cx + rA * Math.cos(st.phi), st.cy + rA * Math.sin(st.phi), st.mA, st.RA);
+      drawBody(st.cx - rB * Math.cos(st.phi), st.cy - rB * Math.sin(st.phi), st.mB, st.RB);
+    } else {
+      const Mf = st.M * FINAL_FRACTION;
+      drawBody(st.cx, st.cy, Mf < 3 ? 2.9 : Mf, Mf < 3 ? 4 : bodyRadius(Mf));
+    }
+    ctx.font = '500 11px "IBM Plex Mono", ui-monospace, monospace';
+    ctx.fillStyle = SC.dim;
+    ctx.fillText('ILLUSTRATION · NOT REAL DATA', 12, 20);
+    ctx.fillText(`${fm(Math.max(st.mA, st.mB))} + ${fm(Math.min(st.mA, st.mB))} M☉`, 12, 36);
+    if (st.merged) { ctx.fillStyle = SC.ink; ctx.fillText('MERGED', 12, 52); }
+    if (withTrace) {
+      const top = h * 0.74, mid = top + (h - top) / 2, amp = (h - top) * 0.42;
+      ctx.strokeStyle = SC.grid; ctx.beginPath(); ctx.moveTo(0, top + 0.5); ctx.lineTo(w, top + 0.5); ctx.stroke();
+      ctx.fillStyle = SC.dim; ctx.fillText('WAVE SIGNAL', 12, top + 16);
+      ctx.strokeStyle = SC.trace; ctx.lineWidth = 2; ctx.shadowColor = SC.trace; ctx.shadowBlur = 6;
+      ctx.beginPath();
+      const n = history.length, dx = w / 420;
+      history.forEach((v, i) => {
+        const X = w - (n - 1 - i) * dx, Y = mid - Math.max(-1.2, Math.min(1.2, v)) * amp;
+        i ? ctx.lineTo(X, Y) : ctx.moveTo(X, Y);
+      });
+      ctx.stroke(); ctx.shadowBlur = 0;
+    }
+  }
+
+  function frame(now) {
+    if (!running) return;
+    const dt = last == null ? 1 / 60 : Math.min((now - last) / 1000, 1 / 20);
+    last = now;
+    const { w, h } = fitCanvas(canvas);
+    draw(step(dt, w, h));
+    requestAnimationFrame(frame);
+  }
+  function start() { if (running || reduceMotion || !visible) return; running = true; last = null; requestAnimationFrame(frame); }
+  function stop() { running = false; }
+  function still() {   // one frame for reduced motion: part-way through the spiral
+    const { w, h } = fitCanvas(canvas);
+    t = 0; history = []; rings = []; merged = false;
+    let st;
+    for (let i = 0; i < 330; i++) st = step(1 / 60, w, h);
+    draw(st);
+  }
+  new IntersectionObserver(es => { visible = es[0].isIntersecting; visible ? start() : stop(); }).observe(canvas);
+  window.addEventListener('resize', () => { if (!running) still(); });
+  if (reduceMotion) still(); else start();
+  return { refresh: () => { if (!running) still(); } };
+}
+
+const heroMasses = (() => { const e = byName.get('GW150914'); return [e.m1[0], e.m2[0]]; })();
+makeOrbit(document.getElementById('hero-canvas'), () => heroMasses, true);
+const simOrbit = makeOrbit(document.getElementById('sim-canvas'), () => [sim.a, sim.b], false);
+
+// ---- the chirp waveform ----
+const waveCanvas = document.getElementById('wave-canvas');
+let playhead = null;   // seconds before merger, while the sound plays
+function drawWave() {
+  const { ctx, w, h } = fitCanvas(waveCanvas);
+  const big = Math.max(sim.a, sim.b), small = Math.min(sim.a, sim.b);
+  const s = signalFor(big, small);
+  const padL = 14, padR = 14, padB = 26, top = 18, plotW = w - padL - padR, mid = top + (h - top - padB) / 2, amp = (h - top - padB) * 0.46;
+  ctx.fillStyle = SC.bg; ctx.fillRect(0, 0, w, h);
+  ctx.strokeStyle = SC.grid; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(padL, mid + 0.5); ctx.lineTo(w - padR, mid + 0.5); ctx.stroke();
+  // time axis: seconds before merger
+  const T = s.duration, xOf = sec => padL + plotW * (1 + sec / T);   // sec is negative (before merger)
+  const ticks = d3.scaleLinear().domain([-T, 0]).ticks(Math.max(2, Math.min(6, Math.floor(plotW / 110))));
+  ctx.font = '11px "IBM Plex Mono", ui-monospace, monospace'; ctx.fillStyle = SC.dim; ctx.textAlign = 'center';
+  ticks.forEach(tk => {
+    const X = xOf(tk); ctx.strokeStyle = SC.grid; ctx.beginPath(); ctx.moveTo(X + 0.5, top); ctx.lineTo(X + 0.5, h - padB); ctx.stroke();
+    const label = tk === 0 ? 'merger' : (T >= 120 ? `${d3.format('.2~f')(tk / 60)} min` : `${d3.format('.3~f')(tk)} s`);
+    ctx.fillText(label, Math.min(Math.max(X, padL + 24), w - padR - 24), h - 8);
+  });
+  // the wave: where wiggles are too close to draw, fill the envelope instead
+  ctx.strokeStyle = SC.trace; ctx.lineWidth = 1.6; ctx.shadowColor = SC.trace; ctx.shadowBlur = 4;
+  ctx.beginPath();
+  const ampAt = tau => Math.pow(freqAt(tau, s.Mc) / s.fEnd, 2 / 3);
+  let penDown = false;
+  for (let i = 0; i < plotW; i++) {
+    const secA = -T + T * i / plotW, secB = -T + T * (i + 1) / plotW;
+    const tauA = s.tauEnd - secA, tauB = s.tauEnd - secB;
+    const dPhi = phaseAt(tauB, s.Mc) - phaseAt(tauA, s.Mc);
+    const X = padL + i;
+    if (dPhi > 1.6 * Math.PI) {
+      const A = ampAt(tauB) * amp;
+      ctx.moveTo(X + 0.5, mid - A); ctx.lineTo(X + 0.5, mid + A); penDown = false;
+    } else {
+      for (let k = 0; k <= 6; k++) {
+        const tau = tauA + (tauB - tauA) * k / 6;
+        const Y = mid - ampAt(tau) * Math.cos(phaseAt(tau, s.Mc)) * amp;
+        const Xk = X + k / 6;
+        if (!penDown) { ctx.moveTo(Xk, Y); penDown = true; } else ctx.lineTo(Xk, Y);
+      }
+    }
+  }
+  ctx.stroke(); ctx.shadowBlur = 0;
+  ctx.textAlign = 'left'; ctx.fillStyle = SC.dim;
+  ctx.fillText(w > 560 ? 'ILLUSTRATION · wave strength (stretch of space), not to scale' : 'ILLUSTRATION · not to scale', padL, 12);
+  if (playhead != null) {
+    const X = xOf(-playhead);
+    ctx.strokeStyle = SC.ink; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(X, top); ctx.lineTo(X, h - padB); ctx.stroke();
+  }
+}
+window.addEventListener('resize', () => drawWave());
+
+// ---- sound ----
+let audioCtx = null, playing = null;
+document.getElementById('play').addEventListener('click', () => {
+  const status = document.getElementById('play-status');
+  try {
+    audioCtx = audioCtx || new (window.AudioContext || window.webkitAudioContext)();
+  } catch (err) { status.textContent = 'Your browser can’t play generated sound here.'; return; }
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  if (playing) { try { playing.osc.stop(); } catch (e) {} playing = null; }
+  const big = Math.max(sim.a, sim.b), small = Math.min(sim.a, sim.b);
+  const s = signalFor(big, small);
+  const pitch = document.getElementById('raise').checked ? 4 : 1;
+  const D = Math.min(s.duration, 6), N = 600;
+  const freqs = new Float32Array(N), gains = new Float32Array(N);
+  for (let i = 0; i < N; i++) {
+    const before = D * (1 - i / (N - 1)), tau = s.tauEnd + before, f = freqAt(tau, s.Mc);
+    freqs[i] = Math.min(f * pitch, 14000);
+    gains[i] = i === 0 ? 0 : 0.28 * Math.pow(f / s.fEnd, 2 / 3);
+  }
+  const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+  const t0 = audioCtx.currentTime + 0.05;
+  gain.gain.setValueAtTime(0, audioCtx.currentTime);
+  osc.frequency.setValueCurveAtTime(freqs, t0, D);
+  gain.gain.setValueCurveAtTime(gains, t0, D);
+  gain.gain.setTargetAtTime(0, t0 + D + 0.002, 0.04);
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start(t0); osc.stop(t0 + D + 0.4);
+  playing = { osc };
+  status.textContent = s.duration > 6
+    ? `Playing the last 6 seconds of ${durationWords(s.duration)}.` : `Playing all ${durationWords(s.duration)}.`;
+  const tick = () => {
+    if (!playing || playing.osc !== osc) return;
+    const el = audioCtx.currentTime - t0;
+    if (el > D) { playhead = null; drawWave(); status.textContent = 'Done. Try a different pair and compare.'; playing = null; return; }
+    playhead = Math.max(0, D - Math.max(el, 0)); drawWave(); requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+});
+
+setMasses(34.6, 30.0);
+
+/* =====================================================================================
+   4. Chapter 2: the graveyard scatter plot
+   ===================================================================================== */
+const firstDate = d3.min(events, e => e.date), lastDate = d3.max(events, e => e.date);
+const GY = { color: 'type', until: lastDate, selected: byName.get('GW150914'), hover: null };
+const timeSlider = document.getElementById('time');
+const sliderToDate = v => new Date(+firstDate + (+lastDate - +firstDate) * v / 1000);
+
+function dotColor(e) {
+  if (GY.color === 'distance') return C.seqScale(e.dist ? e.dist[0] : 1000);
+  if (GY.color === 'spin') return e.chi ? C.spinScale(e.chi[0]) : C.muted;
+  return C[PAIRS[pairType(e)].cssVar.slice(2)];
+}
+function gyLegend() {
+  const el = document.getElementById('gy-legend');
+  const shown = withMasses.filter(e => e.date <= GY.until);
+  if (GY.color === 'type') {
+    el.innerHTML = Object.entries(PAIRS).map(([k, p]) =>
+      `<span><span class="sw" style="background:var(${p.cssVar})"></span>${p.label} <span class="r">(${shown.filter(e => pairType(e) === k).length})</span></span>`).join('');
+  } else if (GY.color === 'distance') {
+    el.innerHTML = `<span>Near<span class="ramp" style="background:linear-gradient(90deg,${C.seq.join(',')})"></span>Far</span>
+      <span class="r">40 Mpc → 8,000 Mpc (log scale)</span>`;
+  } else {
+    el.innerHTML = `<span>−0.6 against the orbit<span class="ramp" style="background:linear-gradient(90deg,${C.div.join(',')})"></span>+0.6 with the orbit</span>
+      <span class="r">gray ≈ 0</span>`;
+  }
+}
+function storyCard(e) {
+  const card = document.getElementById('event-card');
+  if (!e) { card.innerHTML = '<p>Click a dot to read its story.</p>'; return; }
+  const type = pairType(e);
+  const parts = [];
+  if (!e.m1) {
+    parts.push(`<p>This is one of the weaker candidates. Its chance of being real is ${Math.round(e.pastro * 100)}%, and the catalog doesn't list masses for it yet, so it isn't on the chart.</p>`);
+  } else {
+    parts.push(`<p>Two objects spiralled together and merged: <b>${objectWord(e.m1[0])} of about ${fm(e.m1[0])} Suns</b> and <b>${objectWord(e.m2[0])} of about ${fm(e.m2[0])} Suns</b>.</p>`);
+    if (e.mf) {
+      const lost = e.m1[0] + e.m2[0] - e.mf[0];
+      if (e.mf[0] >= 5) parts.push(`<p>They left one black hole of about <b>${fm(e.mf[0])} Suns</b>${lost > 0.3 ? `, so roughly <b>${fm(lost)} Suns’ worth of mass</b> turned into gravitational-wave energy in a fraction of a second` : ''}.</p>`);
+      else parts.push(`<p>What was left weighed about ${fm(e.mf[0])} Suns. It may have been a heavy neutron star for a moment before probably collapsing into a light black hole.</p>`);
+    }
+    if (e.chi) {
+      const c = e.chi[0];
+      parts.push(c > 0.2 ? `<p>Its spins were partly lined up with the orbit (<span class="term" data-term="spin">effective spin</span> ${fmSpin(c)}).</p>`
+        : c < -0.1 ? `<p>Its spins pointed partly against the orbit (<span class="term" data-term="spin">effective spin</span> ${fmSpin(c)}), which is less common.</p>`
+        : `<p>Its <span class="term" data-term="spin">effective spin</span> is close to zero (${fmSpin(c)}): the objects weren't spinning much, or their spins were tilted sideways.</p>`);
+    }
+  }
+  if (e.lookback) parts.push(`<p>The waves travelled for about <b>${travelWords(e.lookback[0])}</b> to reach Earth.</p>`);
+  card.innerHTML = `
+    <span class="eyebrow">Selected merger</span>
+    <h3>${e.name}</h3>
+    <div class="badges">
+      ${type ? `<span class="badge"><span class="sw" style="background:var(${PAIRS[type].cssVar})"></span>${PAIRS[type].label}</span>` : ''}
+      <span class="badge">${e.run || 'between runs'}</span><span class="badge">${e.catalog}</span>
+    </div>
+    <p class="note">Arrived ${fmtDate(e.date)} at ${fmtClock(e.date)}</p>
+    ${parts.join('')}
+    ${FAME[e.name] ? `<p class="fame">${FAME[e.name]}</p>` : ''}
+    <dl>
+      <dt>Heavier</dt><dd>${rangeText(e.m1, ' M☉')}</dd>
+      <dt>Lighter</dt><dd>${rangeText(e.m2, ' M☉')}</dd>
+      <dt>Left after</dt><dd>${rangeText(e.mf, ' M☉')}</dd>
+      <dt><span class="term" data-term="mpc">Distance</span></dt><dd>${rangeText(e.dist, ' Mpc')}</dd>
+      <dt><span class="term" data-term="pastro">Chance it's real</span></dt><dd>${e.pastro != null ? Math.round(e.pastro * 100) + '%' : '—'}</dd>
+      <dt><span class="term" data-term="snr">Loudness (SNR)</span></dt><dd>${e.snr ?? '—'}</dd>
+    </dl>
+    <details><summary>How to read the name ${shortName(e.name)}…</summary><p class="note">${decodeName(e.name)}</p></details>`;
+  enhanceTerms(card);
+}
+
+const gyEl = document.getElementById('gy-chart');
+const drawGY = makeChart(gyEl, (svg, W) => {
+  const H = Math.round(Math.min(580, Math.max(360, W * 0.74)));
+  const m = { t: 14, r: 14, b: 50, l: 54 };
+  svg.attr('width', W).attr('height', H).attr('viewBox', `0 0 ${W} ${H}`).selectAll('*').remove();
+  svg.attr('role', 'img').attr('aria-label', 'Scatter plot of heavier mass against lighter mass for every merger with published masses');
+  const x = d3.scaleLog([1, 300], [m.l, W - m.r]), y = d3.scaleLog([0.8, 300], [H - m.b, m.t]);
+  const tk = [1, 2, 3, 5, 10, 20, 50, 100, 200];
+  axes(svg, x, y, W, H, m, tk, tk, 'Heavier object (primary mass, M☉)', 'Lighter object (M☉)');
+  svg.append('line').attr('class', 'guide').attr('x1', x(1)).attr('y1', y(1)).attr('x2', x(300)).attr('y2', y(300));
+  svg.append('text').attr('class', 'region-label').attr('x', x(160)).attr('y', y(160) - 8).attr('text-anchor', 'end').text('equal masses');
+  svg.append('line').attr('class', 'divider').attr('x1', x(3)).attr('x2', x(3)).attr('y1', m.t).attr('y2', H - m.b);
+  svg.append('line').attr('class', 'divider').attr('y1', y(3)).attr('y2', y(3)).attr('x1', m.l).attr('x2', W - m.r);
+  svg.append('text').attr('class', 'region-label').attr('x', x(1) + 6).attr('y', y(0.8) - 6).text(W > 480 ? 'two neutron stars' : 'NS + NS');
+  svg.append('text').attr('class', 'region-label').attr('x', W - m.r - 4).attr('y', y(0.8) - 6).attr('text-anchor', 'end').text('black hole + neutron star');
+  svg.append('text').attr('class', 'region-label').attr('x', W - m.r - 4).attr('y', y(3) - 6).attr('text-anchor', 'end').text('two black holes');
+
+  const shown = withMasses.filter(e => e.date <= GY.until);
+  const errG = svg.append('g');
+  const dots = svg.append('g').selectAll('circle').data(shown, d => d.name).join('circle')
+    .attr('class', d => 'dot' + (GY.selected === d ? ' sel' : ''))
+    .attr('cx', d => x(d.m1[0])).attr('cy', d => y(d.m2[0]))
+    .attr('r', d => GY.selected === d ? 7 : 4.5).attr('fill', d => dotColor(d));
+  svg.selectAll('circle.sel').raise();
+  const showErr = d => crosshair(errG, x, y, d && d.m1, d && d.m2);
+  showErr(GY.selected && shown.includes(GY.selected) ? GY.selected : null);
+
+  // Hover: find the nearest dot to the pointer (so you don't have to hit it exactly)
+  const pts = shown.map(d => [x(d.m1[0]), y(d.m2[0])]);
+  const delaunay = d3.Delaunay.from(pts);
+  const hoverRing = svg.append('circle').attr('r', 9).attr('fill', 'none').attr('stroke', 'var(--ink)').attr('stroke-width', 1.5).style('display', 'none');
+  const nearest = ev => {
+    const [px, py] = d3.pointer(ev, svg.node());
+    if (!pts.length) return null;
+    const i = delaunay.find(px, py);
+    return Math.hypot(pts[i][0] - px, pts[i][1] - py) < 26 ? shown[i] : null;
+  };
+  svg.append('rect').attr('x', m.l).attr('y', m.t).attr('width', W - m.l - m.r).attr('height', H - m.t - m.b)
+    .attr('fill', 'transparent').style('cursor', 'crosshair')
+    .on('pointermove', ev => {
+      const d = nearest(ev);
+      GY.hover = d;
+      if (!d) { hoverRing.style('display', 'none'); showErr(GY.selected && shown.includes(GY.selected) ? GY.selected : null); if (tipOwner === 'chart') hideTip(); return; }
+      hoverRing.style('display', null).attr('cx', x(d.m1[0])).attr('cy', y(d.m2[0]));
+      showErr(d);
+      showTip(eventTip(d, '<div class="t-hint">Click for its story</div>'), ev.clientX, ev.clientY, 'chart');
+    })
+    .on('pointerleave', () => { hoverRing.style('display', 'none'); showErr(GY.selected && shown.includes(GY.selected) ? GY.selected : null); if (tipOwner === 'chart') hideTip(); })
+    .on('click', ev => {
+      const d = nearest(ev);
+      if (!d) return;
+      selectEvent(d, false);
+      // on touch screens there is no hover, so show the tooltip on tap
+      if (ev.pointerType && ev.pointerType !== 'mouse') showTip(eventTip(d), ev.clientX, ev.clientY, 'chart');
+    });
+  gyLegend();
+});
+function selectEvent(e, scroll) {
+  GY.selected = e;
+  storyCard(e);
+  drawGY();
+  if (scroll) document.getElementById('graveyard').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth' });
+}
+segButtons('color-by', v => { GY.color = v; drawGY(); });
+
+function setUntil(v) {
+  GY.until = sliderToDate(v);
+  const n = withMasses.filter(e => e.date <= GY.until).length;
+  document.getElementById('time-out').textContent = `${fmtDate(GY.until)} · ${n} of ${withMasses.length} mergers`;
+  drawGY();
+}
+timeSlider.addEventListener('input', () => { stopReplay(); setUntil(+timeSlider.value); });
+let replay = null;
+const replayBtn = document.getElementById('time-play');
+function stopReplay() { if (replay) { cancelAnimationFrame(replay); replay = null; replayBtn.textContent = '▶ Replay'; } }
+replayBtn.addEventListener('click', () => {
+  if (replay) { stopReplay(); return; }
+  let v = +timeSlider.value >= 1000 ? 0 : +timeSlider.value, last = null;
+  replayBtn.textContent = '❚❚ Pause';
+  const go = now => {
+    const dt = last == null ? 0 : (now - last) / 1000; last = now;
+    v = Math.min(1000, v + dt * 90);        // about 11 seconds for ten years
+    timeSlider.value = v; setUntil(v);
+    if (v >= 1000) { stopReplay(); return; }
+    replay = requestAnimationFrame(go);
+  };
+  replay = requestAnimationFrame(go);
+});
+setUntil(1000);
+
+// Find an event by name
+document.getElementById('event-names').innerHTML = events.map(e => `<option value="${e.name}"></option>`).join('');
+const findBox = document.getElementById('find');
+function findEvent() {
+  const q = findBox.value.trim().toUpperCase();
+  if (!q) return;
+  const e = byName.get(q) || events.find(x => x.name.startsWith(q));
+  if (e) {
+    if (e.m1 && e.date > GY.until) { timeSlider.value = 1000; setUntil(1000); }
+    selectEvent(e, false);
+  }
+}
+findBox.addEventListener('change', findEvent);
+findBox.addEventListener('keydown', e => { if (e.key === 'Enter') findEvent(); });
+storyCard(GY.selected);
+
+/* =====================================================================================
+   5. Chapter 3: mass histograms
+   ===================================================================================== */
+const HIST = { which: 'm1' };
+const HIST_NAMES = { m1: ['heavier objects', 'Heavier object'], m2: ['lighter objects', 'Lighter object'], mf: ['leftover black holes', 'Black hole left after'] };
+const edges = d3.range(37).map(i => Math.pow(10, i * Math.log10(300) / 36));
+const binsFor = key => {
+  const vals = withMasses.filter(e => e[key]).map(e => e[key][0]);
+  return edges.slice(0, -1).map((lo, i) => ({ lo, hi: edges[i + 1], n: vals.filter(v => v >= lo && v < edges[i + 1]).length }));
+};
+const allBins = { m1: binsFor('m1'), m2: binsFor('m2'), mf: binsFor('mf') };
+const histMax = d3.max(Object.values(allBins).flat(), b => b.n);
+const BANDS = [
+  { lo: 3, hi: 5, name: 'Lower mass gap', text: 'Between the heaviest neutron stars and the lightest black holes. Astronomers expected almost nothing here.' },
+  { lo: 50, hi: 130, name: 'Pair-instability gap (predicted)', text: 'Theory says no black hole can be born straight from a star in this range.' },
+];
+function histNote() {
+  const key = HIST.which, vals = withMasses.filter(e => e[key]).map(e => e[key][0]);
+  const inGap = vals.filter(v => v >= 50 && v <= 130).length, low = vals.filter(v => v >= 3 && v < 5).length;
+  document.getElementById('hist-note').textContent =
+    `${vals.length} ${HIST_NAMES[key][0]}, using each one's best guess. ${low} in the lower mass gap, ${inGap} in the pair-instability gap.`;
+}
+const histEl = document.getElementById('hist-chart');
+const drawHist = makeChart(histEl, (svg, W) => {
+  const H = Math.round(Math.min(380, Math.max(280, W * 0.42)));
+  const m = { t: 40, r: 14, b: 50, l: 48 };
+  svg.attr('width', W).attr('height', H).attr('viewBox', `0 0 ${W} ${H}`).selectAll('*').remove();
+  svg.attr('role', 'img').attr('aria-label', 'Histogram of ' + HIST_NAMES[HIST.which][0]);
+  const x = d3.scaleLog([1, 300], [m.l, W - m.r]), y = d3.scaleLinear([0, histMax * 1.05], [H - m.b, m.t]).nice();
+  BANDS.forEach(b => svg.append('rect').attr('class', 'band').attr('x', x(b.lo)).attr('width', x(b.hi) - x(b.lo)).attr('y', m.t - 30).attr('height', H - m.b - m.t + 30));
+  axes(svg, x, y, W, H, m, [1, 2, 3, 5, 10, 20, 50, 100, 200], y.ticks(5), 'Mass (M☉, log scale)', 'Number of objects');
+  svg.selectAll('.gridline').filter(function () { return this.getAttribute('x1') === this.getAttribute('x2'); }).remove();
+  const labels = [[Math.sqrt(15), ['lower', 'gap']], [Math.sqrt(6500), ['pair-instability', 'gap']]];
+  if (W >= 560) labels.unshift([Math.sqrt(1.2 * 2.6), ['neutron', 'stars']]);   // no room for it on phones
+  labels.forEach(([v, lines]) => {
+    const t = svg.append('text').attr('class', 'band-label').attr('x', x(v)).attr('y', m.t - 18).attr('text-anchor', 'middle');
+    lines.forEach((l, i) => t.append('tspan').attr('x', x(v)).attr('dy', i ? 13 : 0).text(l));
+  });
+  const bins = allBins[HIST.which];
+  const barPath = (b, r = 3) => {
+    const x0 = x(b.lo) + 1, x1 = x(b.hi) - 1, y0 = y(0), y1 = y(b.n);
+    if (b.n === 0) return '';
+    const rr = Math.min(r, (x1 - x0) / 2, y0 - y1);
+    return `M${x0},${y0}V${y1 + rr}Q${x0},${y1} ${x0 + rr},${y1}H${x1 - rr}Q${x1},${y1} ${x1},${y1 + rr}V${y0}Z`;
+  };
+  const bars = svg.append('g').selectAll('path').data(bins).join('path').attr('class', 'bar').attr('d', d => barPath(d));
+  svg.append('rect').attr('x', m.l).attr('y', m.t - 30).attr('width', W - m.l - m.r).attr('height', H - m.b - m.t + 30).attr('fill', 'transparent')
+    .on('pointermove', ev => {
+      const [px] = d3.pointer(ev, svg.node());
+      const mass = x.invert(px), b = bins.find(b => mass >= b.lo && mass < b.hi);
+      bars.classed('hot', d => d === b);
+      if (!b) return hideTip();
+      const band = BANDS.find(z => mass >= z.lo && mass <= z.hi);
+      const names = withMasses.filter(e => e[HIST.which] && e[HIST.which][0] >= b.lo && e[HIST.which][0] < b.hi).map(e => shortName(e.name));
+      const list = names.length && names.length <= 4 ? `<div class="t-sub" style="margin:6px 0 0">${names.join(', ')}</div>` : '';
+      showTip(`<b>${b.n} ${HIST_NAMES[HIST.which][0]}</b>between ${fm(b.lo)} and ${fm(b.hi)} M☉${list}` +
+        (band ? `<div class="t-hint"><b style="display:inline;font-size:inherit">${band.name}.</b> ${band.text}</div>` : ''), ev.clientX, ev.clientY, 'chart');
+    })
+    .on('pointerleave', () => { bars.classed('hot', false); hideTip(); });
+  histNote();
+});
+segButtons('hist-which', v => { HIST.which = v; drawHist(); });
+
+/* =====================================================================================
+   6. Chapter 4: how the catalog grew
+   ===================================================================================== */
+const sortedAll = events.slice().sort((a, b) => a.date - b.date);
+const sortedMass = withMasses.slice().sort((a, b) => a.date - b.date);
+document.getElementById('time-legend').innerHTML =
+  `<span><span class="sw" style="background:var(--s1)"></span>all catalog events (${sortedAll.length})</span>
+   <span><span class="sw" style="background:var(--s2)"></span>with published masses (${sortedMass.length})</span>
+   <span class="r">gray bands: detectors listening</span>`;
+const timeEl = document.getElementById('time-chart');
+makeChart(timeEl, (svg, W) => {
+  const H = Math.round(Math.min(400, Math.max(300, W * 0.44)));
+  const m = { t: 30, r: 44, b: 44, l: 48 };
+  svg.attr('width', W).attr('height', H).attr('viewBox', `0 0 ${W} ${H}`).selectAll('*').remove();
+  svg.attr('role', 'img').attr('aria-label', 'Running total of detections from 2015 to 2025');
+  const x = d3.scaleUtc([new Date(Date.UTC(2015, 5, 1)), new Date(Date.UTC(2025, 6, 1))], [m.l, W - m.r]);
+  const y = d3.scaleLinear([0, 420], [H - m.b, m.t]);
+  runs.forEach(r => svg.append('rect').attr('class', 'band').attr('x', x(r.start)).attr('width', x(r.end) - x(r.start)).attr('y', m.t - 18).attr('height', H - m.b - m.t + 18));
+  // On narrow screens the a/b halves of O3 and O4 are too close to label separately
+  const runLabels = W < 640
+    ? ['O1', 'O2', 'O3', 'O4'].map(n => { const p = runs.filter(r => r.name.startsWith(n)); return { name: n, start: p[0].start, end: p[p.length - 1].end }; })
+    : runs;
+  runLabels.forEach(r => svg.append('text').attr('class', 'band-label').attr('x', (x(r.start) + x(r.end)) / 2).attr('y', m.t - 6).attr('text-anchor', 'middle').text(r.name));
+  const years = d3.range(2016, 2026).map(yr => new Date(Date.UTC(yr, 0, 1)));
+  axes(svg, x, y, W, H, m, W < 520 ? years.filter((_, i) => i % 2 === 0) : years, [0, 100, 200, 300, 400], '', 'Detections so far', d3.utcFormat('%Y'));
+  svg.selectAll('.gridline').filter(function () { return this.getAttribute('x1') === this.getAttribute('x2'); }).remove();
+  const steps = list => [[x.domain()[0], 0], ...list.map((e, i) => [e.date, i + 1]), [lastDate, list.length]];
+  const line = d3.line().x(d => x(d[0])).y(d => y(d[1])).curve(d3.curveStepAfter);
+  [[sortedAll, 'var(--s1)'], [sortedMass, 'var(--s2)']].forEach(([list, col]) => {
+    svg.append('path').attr('d', line(steps(list))).attr('fill', 'none').attr('stroke', col).attr('stroke-width', 2).attr('stroke-linejoin', 'round');
+    svg.append('text').attr('class', 'end-label').attr('x', x(lastDate) + 6).attr('y', y(list.length) + 4).text(list.length);
+  });
+  const annotate = (name, text, dx, dy) => {
+    const e = byName.get(name), i = sortedAll.indexOf(e) + 1;
+    svg.append('line').attr('class', 'ann-line').attr('x1', x(e.date)).attr('y1', y(i)).attr('x2', x(e.date) + dx).attr('y2', y(i) - dy);
+    svg.append('text').attr('class', 'ann').attr('x', x(e.date) + dx + 3).attr('y', y(i) - dy - 4).text(text);
+  };
+  annotate('GW150914', 'first detection', 4, 46);
+  annotate('GW170817', 'first neutron-star pair', 4, 86);
+  if (W > 520) svg.append('text').attr('class', 'region-label').attr('x', x(new Date(Date.UTC(2021, 9, 1)))).attr('y', y(130)).attr('text-anchor', 'middle').text('switched off for upgrades');
+
+  const cross = svg.append('line').attr('class', 'crosshair').attr('y1', m.t).attr('y2', H - m.b).style('display', 'none');
+  svg.append('rect').attr('x', m.l).attr('y', m.t - 18).attr('width', W - m.l - m.r).attr('height', H - m.b - m.t + 18).attr('fill', 'transparent')
+    .on('pointermove', ev => {
+      const [px] = d3.pointer(ev, svg.node());
+      const d = x.invert(px);
+      const nAll = sortedAll.filter(e => e.date <= d).length, nMass = sortedMass.filter(e => e.date <= d).length;
+      const latest = sortedAll.filter(e => e.date <= d).pop();
+      const run = runs.find(r => d >= r.start && d <= r.end);
+      const prev = runs.filter(r => r.end < d).pop(), next = runs.find(r => r.start > d);
+      cross.style('display', null).attr('x1', px).attr('x2', px);
+      const runLine = run
+        ? `<div class="t-hint">During run <b style="display:inline;font-size:inherit">${run.name}</b>: ${fmtDate(run.start)} to ${fmtDate(run.end)}, detectors ${run.detectors.join(', ')}. ${run.events} detections.</div>`
+        : `<div class="t-hint">Detectors switched off${prev && next ? ` between ${prev.name} and ${next.name}` : ''}.</div>`;
+      showTip(`<b>${fmtDate(d)}</b>${nAll} detections so far<br><span class="r">${nMass} with published masses</span>` +
+        (latest ? `<div class="t-sub" style="margin:6px 0 0">Latest: ${latest.name} (${fmtDate(latest.date)})</div>` : '') + runLine, ev.clientX, ev.clientY, 'chart');
+    })
+    .on('pointerleave', () => { cross.style('display', 'none'); hideTip(); });
+});
+const weeks = r => (r.end - r.start) / (7 * 86400e3);
+const maxRate = d3.max(runs, r => r.events / weeks(r));
+document.getElementById('runs-body').innerHTML = runs.map(r => {
+  const rate = r.events / weeks(r);
+  return `<tr><td><b>${r.name}</b></td><td>${fmtDate(r.start)} – ${fmtDate(r.end)}</td><td class="mono">${r.detectors.join(' ')}</td>
+    <td class="n">${r.events}</td><td><span class="rate" style="width:${Math.max(2, 120 * rate / maxRate)}px"></span><span class="num">${rate.toFixed(1)}</span></td></tr>`;
+}).join('');
+enhanceTerms(document.getElementById('timeline'));
+
+/* =====================================================================================
+   7. Chapter 5: final mass vs distance
+   ===================================================================================== */
+const DIST = { which: 'dist' };
+const distEvents = withMasses.filter(e => e.mf && e.dist && e.lookback);
+const distEl = document.getElementById('dist-chart');
+const drawDist = makeChart(distEl, (svg, W) => {
+  const H = Math.round(Math.min(500, Math.max(320, W * 0.6)));
+  const m = { t: 16, r: 16, b: 50, l: 54 };
+  svg.attr('width', W).attr('height', H).attr('viewBox', `0 0 ${W} ${H}`).selectAll('*').remove();
+  svg.attr('role', 'img').attr('aria-label', 'Final black hole mass against distance');
+  const key = DIST.which;
+  const x = key === 'dist' ? d3.scaleLog([20, 15000], [m.l, W - m.r]) : d3.scaleLog([0.1, 12], [m.l, W - m.r]);
+  const y = d3.scaleLog([1.5, 400], [H - m.b, m.t]);
+  const xt = key === 'dist' ? (W < 520 ? [20, 100, 1000, 10000] : [20, 50, 100, 200, 500, 1000, 2000, 5000, 10000]) : [0.1, 0.2, 0.5, 1, 2, 5, 10];
+  axes(svg, x, y, W, H, m, xt, [2, 5, 10, 20, 50, 100, 200],
+    key === 'dist' ? 'Distance (Mpc; 1 Mpc ≈ 3.26 million light-years)' : 'Light-travel time (billion years)', 'Black hole left after (M☉)',
+    d3.format(',~g'), d3.format('~g'));
+  const errG = svg.append('g');
+  svg.append('g').selectAll('circle').data(distEvents).join('circle').attr('class', 'dot')
+    .attr('cx', d => x(d[key][0])).attr('cy', d => y(d.mf[0])).attr('r', 4.5).attr('fill', 'var(--s1)').attr('fill-opacity', 0.9);
+  // median final mass in thirds by distance (drawn on top of the dots so the labels stay readable)
+  const sorted = distEvents.slice().sort((a, b) => a[key][0] - b[key][0]);
+  const third = Math.ceil(sorted.length / 3);
+  [0, 1, 2].forEach(i => {
+    const part = sorted.slice(i * third, (i + 1) * third);
+    const med = d3.median(part, e => e.mf[0]);
+    const x0 = x(part[0][key][0]), x1 = x(part[part.length - 1][key][0]);
+    svg.append('line').attr('class', 'median-seg').attr('x1', x0).attr('x2', x1).attr('y1', y(med)).attr('y2', y(med));
+    svg.append('text').attr('class', 'median-label').attr('x', (x0 + x1) / 2).attr('y', y(med) + (i === 0 ? 16 : -8)).attr('text-anchor', 'middle').text(`median ${fm(med)} M☉`);
+  });
+  const near = byName.get('GW170817');
+  svg.append('text').attr('class', 'ann').attr('x', x(near[key][0]) + 9).attr('y', y(near.mf[0]) + 4).text('GW170817, the closest');
+  const pts = distEvents.map(d => [x(d[key][0]), y(d.mf[0])]), delaunay = d3.Delaunay.from(pts);
+  const ring = svg.append('circle').attr('r', 9).attr('fill', 'none').attr('stroke', 'var(--ink)').attr('stroke-width', 1.5).style('display', 'none');
+  svg.append('rect').attr('x', m.l).attr('y', m.t).attr('width', W - m.l - m.r).attr('height', H - m.t - m.b).attr('fill', 'transparent')
+    .on('pointermove', ev => {
+      const [px, py] = d3.pointer(ev, svg.node()), i = delaunay.find(px, py);
+      if (Math.hypot(pts[i][0] - px, pts[i][1] - py) > 26) { ring.style('display', 'none'); errG.selectAll('*').remove(); return hideTip(); }
+      const d = distEvents[i];
+      ring.style('display', null).attr('cx', pts[i][0]).attr('cy', pts[i][1]);
+      crosshair(errG, x, y, d[key], d.mf);
+      showTip(eventTip(d), ev.clientX, ev.clientY, 'chart');
+    })
+    .on('pointerleave', () => { ring.style('display', 'none'); errG.selectAll('*').remove(); hideTip(); })
+    .on('click', ev => {
+      const [px, py] = d3.pointer(ev, svg.node()), i = delaunay.find(px, py);
+      if (Math.hypot(pts[i][0] - px, pts[i][1] - py) <= 26) { GY.selected = distEvents[i]; storyCard(GY.selected); drawGY(); }
+    });
+});
+segButtons('dist-which', v => { DIST.which = v; drawDist(); });
+
+/* =====================================================================================
+   8. Chapter 6: the pair-instability gap, with a movable edge
+   ===================================================================================== */
+const GAP_TOP = 130;
+const gapRows = withMasses.filter(e => e.m1[1] > 40).sort((a, b) => b.m1[0] - a.m1[0]);
+const spinEvents = withMasses.filter(e => e.chi);
+let gapEdge = 50;
+function gapReadout() {
+  document.getElementById('gap-legend').innerHTML =
+    `<span>Dot color: effective spin <span class="ramp" style="background:linear-gradient(90deg,${C.div.join(',')})"></span></span><span class="r">blue = against the orbit · gray ≈ 0 · red = with the orbit</span>`;
+  const inside = spinEvents.filter(e => e.m1[1] > gapEdge), rest = spinEvents.filter(e => e.m1[1] <= gapEdge);
+  const share = list => list.length ? Math.round(100 * list.filter(e => e.chi[0] > 0.2).length / list.length) : 0;
+  const n = withMasses.filter(e => e.m1[1] > gapEdge).length;
+  document.getElementById('gap-readout').innerHTML =
+    `If the gap starts at <b>${gapEdge} M☉</b>, <b>${n} mergers</b> have a heavier black hole whose whole 90% range sits above that edge.
+     <b>${share(inside)}%</b> of them have an effective spin above +0.2, compared with <b>${share(rest)}%</b> of all other mergers.`;
+  document.getElementById('edge-out').textContent = gapEdge + ' M☉';
+}
+const gapEl = document.getElementById('gap-chart');
+const drawGap = makeChart(gapEl, (svg, W) => {
+  const rowH = 15, m = { t: 30, r: 16, b: 44, l: W < 520 ? 112 : 128 };
+  const H = m.t + m.b + rowH * gapRows.length;
+  svg.attr('width', W).attr('height', H).attr('viewBox', `0 0 ${W} ${H}`).selectAll('*').remove();
+  svg.attr('role', 'img').attr('aria-label', 'Mass ranges of the heaviest primary black holes compared with the pair-instability gap');
+  const x = d3.scaleLinear([0, 200], [m.l, W - m.r]);
+  const yRow = i => m.t + rowH * i + rowH / 2;
+  svg.append('rect').attr('class', 'band').attr('x', x(gapEdge)).attr('width', x(GAP_TOP) - x(gapEdge)).attr('y', m.t - 22).attr('height', H - m.b - m.t + 22);
+  svg.append('text').attr('class', 'band-label').attr('x', (x(gapEdge) + x(GAP_TOP)) / 2).attr('y', m.t - 8).attr('text-anchor', 'middle').text('pair-instability gap');
+  const xt = W < 520 ? [0, 50, 100, 150, 200] : d3.range(0, 201, 25);
+  xt.forEach(t => svg.append('line').attr('class', 'gridline').attr('x1', x(t)).attr('x2', x(t)).attr('y1', m.t).attr('y2', H - m.b));
+  svg.append('g').attr('class', 'ax').attr('transform', `translate(0,${H - m.b})`).call(d3.axisBottom(x).tickValues(xt).tickSizeOuter(0));
+  svg.append('text').attr('class', 'ax-title').attr('x', (m.l + W - m.r) / 2).attr('y', H - 6).attr('text-anchor', 'middle').text('Heavier black hole mass (M☉), with 90% range');
+  svg.append('line').attr('class', 'edge-line').attr('x1', x(gapEdge)).attr('x2', x(gapEdge)).attr('y1', m.t - 22).attr('y2', H - m.b);
+  const rows = svg.append('g').selectAll('g').data(gapRows).join('g')
+    .attr('class', d => 'row' + (d.m1[1] > gapEdge ? '' : ' out'))
+    .attr('transform', (d, i) => `translate(0,${yRow(i)})`);
+  rows.append('text').attr('class', 'row-label').attr('x', m.l - 8).attr('y', 3.5).attr('text-anchor', 'end').text(d => d.name);
+  rows.append('line').attr('class', 'row-range').attr('x1', d => x(d.m1[1])).attr('x2', d => x(d.m1[2]));
+  rows.append('circle').attr('class', 'dot').attr('cx', d => x(d.m1[0])).attr('r', 4.5)
+    .attr('fill', d => d.chi ? C.spinScale(d.chi[0]) : C.muted).attr('opacity', d => d.m1[1] > gapEdge ? 1 : 0.45);
+  svg.append('rect').attr('x', 0).attr('y', m.t).attr('width', W).attr('height', rowH * gapRows.length).attr('fill', 'transparent')
+    .on('pointermove', ev => {
+      const [, py] = d3.pointer(ev, svg.node()), i = Math.floor((py - m.t) / rowH), d = gapRows[i];
+      rows.classed('hot', r => r === d);
+      if (!d) return hideTip();
+      const verdict = d.m1[1] > gapEdge ? `Its whole range is above ${gapEdge} M☉.` : `Its range dips below ${gapEdge} M☉, so it might not be in the gap.`;
+      showTip(eventTip(d, `<div class="t-hint">${verdict}</div>`), ev.clientX, ev.clientY, 'chart');
+    })
+    .on('pointerleave', () => { rows.classed('hot', false); hideTip(); })
+    .on('click', ev => {
+      const [, py] = d3.pointer(ev, svg.node()), d = gapRows[Math.floor((py - m.t) / rowH)];
+      if (d) selectEvent(d, true);
+    });
+  gapReadout();
+});
+document.getElementById('edge').addEventListener('input', ev => { gapEdge = +ev.target.value; drawGap(); });
+
+/* =====================================================================================
+   9. Chapter 7: quiz (answers come from the data above)
+   ===================================================================================== */
+const heaviest = withMasses.slice().sort((a, b) => b.m1[0] - a.m1[0])[0];
+const QUIZ = [
+  { q: 'Roughly how heavy are most of the black holes in the catalog?',
+    opts: ['About as heavy as the Sun', 'About 10 to 40 times the Sun', 'About 1,000 times the Sun', 'A million times the Sun'], a: 1,
+    why: 'The histogram in chapter 3 has two crowds, around 10 and around 35 Suns.' },
+  { q: 'What does the name GW170817 tell you?',
+    opts: ['It was the 170,817th detection', 'It arrived on 17 August 2017', 'It was 170,817 light-years away'], a: 1,
+    why: 'Event names are GW plus the date, year-month-day: 17-08-17. Newer names add the time of day too.' },
+  { q: 'Between 2020 and 2023 the number of detections stayed flat. Why?',
+    opts: ['The universe went quiet', 'The detectors were switched off for upgrades', 'LIGO stopped publishing results'], a: 1,
+    why: 'The timeline in chapter 4 only climbs during observing runs. After each upgrade it climbs faster.' },
+  { q: 'Why are the farthest mergers in the catalog mostly heavy ones?',
+    opts: ['Black holes were heavier long ago', 'Heavy mergers are louder, so we can hear them from farther away', 'Faraway galaxies only make big stars'], a: 1,
+    why: 'That is a selection effect: quiet, light mergers are only heard when they are close (chapter 5).' },
+  { q: `Theory says almost no black holes are born from stars between about 50 and 130 Suns. What does the catalog show?`,
+    opts: ['Nothing is there', 'Several mergers have a black hole very likely in that range', 'Most black holes are in that range'], a: 1,
+    why: `About 19 mergers have a heavier black hole very likely above 50 Suns, including ${shortName(heaviest.name)} at about ${fm(heaviest.m1[0])} Suns (chapter 6).` },
+];
+const answered = new Map();
+document.getElementById('quiz-box').innerHTML = QUIZ.map((item, qi) => `
+  <div class="q" data-q="${qi}">
+    <h3>${qi + 1}. ${item.q}</h3>
+    <div class="opts">${item.opts.map((o, oi) => `<button type="button" data-o="${oi}">${o}</button>`).join('')}</div>
+    <p class="why" hidden></p>
+  </div>`).join('');
+document.getElementById('quiz-box').addEventListener('click', ev => {
+  const b = ev.target.closest('button'); if (!b) return;
+  const box = b.closest('.q'), qi = +box.dataset.q, item = QUIZ[qi], oi = +b.dataset.o;
+  if (answered.has(qi)) return;
+  answered.set(qi, oi === item.a);
+  box.querySelectorAll('button').forEach(x => {
+    x.disabled = true;
+    if (+x.dataset.o === item.a) x.classList.add('right'); else if (x === b) x.classList.add('wrong');
+  });
+  const why = box.querySelector('.why');
+  why.hidden = false;
+  why.innerHTML = `<span class="verdict ${oi === item.a ? 'right' : 'wrong'}">${oi === item.a ? 'Right.' : 'Not quite.'}</span> ${item.why}`;
+  const right = [...answered.values()].filter(Boolean).length;
+  document.getElementById('quiz-score').textContent = answered.size === QUIZ.length
+    ? `You got ${right} of ${QUIZ.length}. ${right === QUIZ.length ? 'Ready for the demo.' : 'Scroll back up to the chapter mentioned to see why.'}`
+    : `${right} of ${answered.size} right so far.`;
+});
+
+/* =====================================================================================
+   10. The data table
+   ===================================================================================== */
+const COLS = [
+  ['name', 'Event', e => e.name, e => e.name],
+  ['date', 'Date', e => +e.date, e => fmtDate(e.date)],
+  ['catalog', 'Catalog', e => e.catalog, e => e.catalog],
+  ['m1', 'Heavier (M☉)', e => e.m1 ? e.m1[0] : -1, e => rangeText(e.m1)],
+  ['m2', 'Lighter (M☉)', e => e.m2 ? e.m2[0] : -1, e => rangeText(e.m2)],
+  ['mf', 'Left after (M☉)', e => e.mf ? e.mf[0] : -1, e => rangeText(e.mf)],
+  ['dist', 'Distance (Mpc)', e => e.dist ? e.dist[0] : -1, e => e.dist ? fm(e.dist[0]) : '—'],
+  ['chi', 'Spin', e => e.chi ? e.chi[0] : -9, e => e.chi ? fmSpin(e.chi[0]) : '—'],
+  ['pastro', "Chance it's real", e => e.pastro ?? -1, e => e.pastro != null ? Math.round(e.pastro * 100) + '%' : '—'],
+];
+const TABLE = { sort: 'date', dir: 1, q: '' };
+const table = document.getElementById('data-table');
+function drawTable() {
+  const col = COLS.find(c => c[0] === TABLE.sort);
+  const rows = events.filter(e => e.name.includes(TABLE.q.toUpperCase()))
+    .sort((a, b) => { const A = col[2](a), B = col[2](b); return (A < B ? -1 : A > B ? 1 : 0) * TABLE.dir; });
+  table.innerHTML = `<thead><tr>${COLS.map(c => `<th class="${['name', 'date', 'catalog'].includes(c[0]) ? '' : 'n'}" aria-sort="${c[0] === TABLE.sort ? (TABLE.dir > 0 ? 'ascending' : 'descending') : 'none'}">
+      <button type="button" data-k="${c[0]}">${c[1]}${c[0] === TABLE.sort ? (TABLE.dir > 0 ? ' ↑' : ' ↓') : ''}</button></th>`).join('')}</tr></thead>
+    <tbody>${rows.map(e => `<tr data-n="${e.name}" tabindex="0">${COLS.map(c => `<td class="${['name', 'date', 'catalog'].includes(c[0]) ? '' : 'n'}">${c[3](e)}</td>`).join('')}</tr>`).join('')}</tbody>`;
+  document.getElementById('table-count').textContent = `${rows.length} of ${events.length} events`;
+}
+table.addEventListener('click', ev => {
+  const h = ev.target.closest('button[data-k]');
+  if (h) { const k = h.dataset.k; TABLE.dir = TABLE.sort === k ? -TABLE.dir : 1; TABLE.sort = k; drawTable(); return; }
+  const tr = ev.target.closest('tr[data-n]');
+  if (tr) { const e = byName.get(tr.dataset.n); if (e.m1 && e.date > GY.until) { timeSlider.value = 1000; setUntil(1000); } selectEvent(e, true); }
+});
+table.addEventListener('keydown', ev => {
+  const tr = ev.target.closest('tr[data-n]');
+  if (tr && ev.key === 'Enter') selectEvent(byName.get(tr.dataset.n), true);
+});
+document.getElementById('table-search').addEventListener('input', ev => { TABLE.q = ev.target.value.trim(); drawTable(); });
+drawTable();
+
+/* =====================================================================================
+   11. Highlight the current chapter in the top bar
+   ===================================================================================== */
+const nav = document.querySelector('.chapters');
+const links = [...nav.querySelectorAll('a')];
+const chapterObserver = new IntersectionObserver(entries => {
+  entries.forEach(en => {
+    if (!en.isIntersecting) return;
+    links.forEach(a => a.setAttribute('aria-current', String(a.getAttribute('href') === '#' + en.target.id)));
+    const cur = links.find(a => a.getAttribute('aria-current') === 'true');
+    // keep the current chapter visible in the (sideways-scrolling) bar on small screens
+    if (cur && (cur.offsetLeft < nav.scrollLeft || cur.offsetLeft + cur.offsetWidth > nav.scrollLeft + nav.clientWidth)) {
+      nav.scrollLeft = cur.offsetLeft - 16;
+    }
+  });
+}, { rootMargin: '-45% 0px -50% 0px' });
+links.forEach(a => { const s = document.querySelector(a.getAttribute('href')); if (s) chapterObserver.observe(s); });
+})();
+</script>
